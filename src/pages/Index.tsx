@@ -1,7 +1,7 @@
 import RetroHeader from '@/components/RetroHeader';
 import CommunitySection from '@/components/CommunitySection';
-import VideoFeed from '@/components/VideoFeed';
-import SidebarStats from '@/components/SidebarStats';
+import VideoFeedReal from '@/components/VideoFeedReal';
+import SidebarStatsReal from '@/components/SidebarStatsReal';
 import emoGamerHero from '@/assets/emo-gamer-hero.png';
 
 const Index = () => {
@@ -16,10 +16,10 @@ const Index = () => {
           <div className="flex items-center justify-between">
             <div className="flex-1 space-y-4">
               <h1 className="text-pixel text-2xl lg:text-3xl glow-text">
-                RETROGAMESHARE
+                XPUNK
               </h1>
               <p className="text-mono text-sm lg:text-base text-muted-foreground max-w-2xl">
-                Bem-vindo ao RetroGameShare — um lugar para comunidades que compartilham 
+                Bem-vindo ao XPUNK — um lugar para comunidades que compartilham 
                 a paixão por videogames, mods e aquelas cenas emo que marcaram os anos 2000. 
                 Faça upload, junte-se a uma comunidade e compartilhe suas recordações pixeladas.
               </p>
@@ -55,12 +55,12 @@ const Index = () => {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Video Feed - Main Content */}
           <div className="lg:col-span-3">
-            <VideoFeed />
+            <VideoFeedReal />
           </div>
           
           {/* Sidebar */}
           <div className="lg:col-span-1">
-            <SidebarStats />
+            <SidebarStatsReal />
           </div>
         </div>
 
@@ -76,7 +76,7 @@ const Index = () => {
             </div>
             
             <div className="text-xs text-muted-foreground text-mono">
-              © 2006 RetroGameShare - Powered by nostalgia and emo vibes
+              © 2006 XPUNK - Powered by nostalgia and emo vibes
             </div>
             
             <div className="text-xs text-terminal">

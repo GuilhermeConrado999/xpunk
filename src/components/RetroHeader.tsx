@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import retroLogoBanner from '@/assets/retro-logo-banner.png';
+import { useAuth } from '@/hooks/useAuth';
 
 const RetroHeader = () => {
+  const { user, signOut } = useAuth();
   const [currentTime, setCurrentTime] = useState(new Date().toLocaleString());
 
   // Update time every second for that authentic 2000s feel
@@ -26,7 +28,7 @@ const RetroHeader = () => {
               className="h-12 pixel-border" 
             />
             <div className="text-terminal">
-              <div className="text-lg glow-text">RETROGAMESHARE</div>
+              <div className="text-lg glow-text">XPUNK</div>
               <div className="text-xs text-muted-foreground">
                 vídeos de games, mods e memórias — estilo 2006
               </div>
@@ -52,27 +54,39 @@ const RetroHeader = () => {
             <Button variant="ghost" className="btn-retro text-xs">
               HOME
             </Button>
-            <Button variant="ghost" className="btn-retro text-xs">
-              UPLOAD
-            </Button>
-            <Button variant="ghost" className="btn-retro text-xs">
-              COMUNIDADES
-            </Button>
-            <Button variant="ghost" className="btn-retro text-xs">
-              PERFIL
-            </Button>
+            {user && (
+              <>
+                <Button variant="ghost" className="btn-retro text-xs">
+                  UPLOAD
+                </Button>
+                <Button variant="ghost" className="btn-retro text-xs">
+                  COMUNIDADES
+                </Button>
+                <Button variant="ghost" className="btn-retro text-xs">
+                  PERFIL
+                </Button>
+              </>
+            )}
             <Button variant="ghost" className="btn-retro text-xs">
               GUESTBOOK
             </Button>
           </div>
           
           <div className="flex space-x-2">
-            <Button className="btn-retro text-xs">
-              LOGIN
-            </Button>
-            <Button variant="outline" className="btn-retro text-xs">
-              CADASTRO
-            </Button>
+            {user ? (
+              <Button onClick={signOut} className="btn-retro text-xs">
+                LOGOUT
+              </Button>
+            ) : (
+              <>
+                <Button className="btn-retro text-xs">
+                  LOGIN
+                </Button>
+                <Button variant="outline" className="btn-retro text-xs">
+                  CADASTRO
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </nav>
