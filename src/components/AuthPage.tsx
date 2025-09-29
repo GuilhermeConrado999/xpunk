@@ -5,39 +5,41 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import cyberpunkBg from '@/assets/cyberpunk-bg.jpg';
-
 interface AuthPageProps {
   onAuthSuccess: () => void;
 }
-
-const AuthPage = ({ onAuthSuccess }: AuthPageProps) => {
+const AuthPage = ({
+  onAuthSuccess
+}: AuthPageProps) => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
-  const { toast } = useToast();
-
+  const {
+    toast
+  } = useToast();
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
     try {
       if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({
+        const {
+          error
+        } = await supabase.auth.signInWithPassword({
           email,
           password
         });
-        
         if (error) throw error;
-        
         toast({
           title: "Login realizado!",
-          description: "Bem-vindo ao XPUNK",
+          description: "Bem-vindo ao XPUNK"
         });
         onAuthSuccess();
       } else {
-        const { error } = await supabase.auth.signUp({
+        const {
+          error
+        } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -48,12 +50,10 @@ const AuthPage = ({ onAuthSuccess }: AuthPageProps) => {
             }
           }
         });
-        
         if (error) throw error;
-        
         toast({
           title: "Conta criada!",
-          description: "Verifique seu email para confirmar a conta",
+          description: "Verifique seu email para confirmar a conta"
         });
       }
     } catch (error: any) {
@@ -66,17 +66,12 @@ const AuthPage = ({ onAuthSuccess }: AuthPageProps) => {
       setLoading(false);
     }
   };
-
-  return (
-    <div 
-      className="min-h-screen relative overflow-hidden flex items-center justify-center p-4"
-      style={{
-        backgroundImage: `url(${cyberpunkBg})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat'
-      }}
-    >
+  return <div className="min-h-screen relative overflow-hidden flex items-center justify-center p-4" style={{
+    backgroundImage: `url(${cyberpunkBg})`,
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat'
+  }}>
       {/* Dark Overlay */}
       <div className="absolute inset-0 bg-black/60"></div>
       
@@ -152,55 +147,27 @@ const AuthPage = ({ onAuthSuccess }: AuthPageProps) => {
               <Label htmlFor="email" className="text-terminal text-sm text-retro-cyan flex items-center gap-2">
                 <span className="text-retro-pink">{'>'}</span> EMAIL:
               </Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="text-mono bg-retro-dark/50 border-retro-cyan/30 focus:border-retro-pink focus:ring-retro-pink/20 transition-all duration-300"
-                placeholder="user@cyberpunk.net"
-              />
+              <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="user@cyberpunk.net" className="text-mono bg-retro-dark/50 border-retro-cyan/30 focus:border-retro-pink focus:ring-retro-pink/20 transition-all duration-300 bg-zinc-950" />
             </div>
 
-            {!isLogin && (
-              <div className="group animate-fade-in">
+            {!isLogin && <div className="group animate-fade-in">
                 <Label htmlFor="username" className="text-terminal text-sm text-retro-cyan flex items-center gap-2">
                   <span className="text-retro-pink">{'>'}</span> USERNAME:
                 </Label>
-                <Input
-                  id="username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="text-mono bg-retro-dark/50 border-retro-cyan/30 focus:border-retro-pink focus:ring-retro-pink/20 transition-all duration-300"
-                  placeholder="xXxCyberGamer2006xXx"
-                />
-              </div>
-            )}
+                <Input id="username" value={username} onChange={e => setUsername(e.target.value)} className="text-mono bg-retro-dark/50 border-retro-cyan/30 focus:border-retro-pink focus:ring-retro-pink/20 transition-all duration-300" placeholder="xXxCyberGamer2006xXx" />
+              </div>}
 
             <div className="group">
               <Label htmlFor="password" className="text-terminal text-sm text-retro-cyan flex items-center gap-2">
                 <span className="text-retro-pink">{'>'}</span> PASSWORD:
               </Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="text-mono bg-retro-dark/50 border-retro-cyan/30 focus:border-retro-pink focus:ring-retro-pink/20 transition-all duration-300"
-                placeholder="••••••••••••"
-              />
+              <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} required placeholder="••••••••••••" className="text-mono bg-retro-dark/50 border-retro-cyan/30 focus:border-retro-pink focus:ring-retro-pink/20 transition-all duration-300 bg-gray-950" />
             </div>
           </div>
 
-          <Button 
-            type="submit" 
-            disabled={loading}
-            className="w-full btn-retro text-lg py-3 bg-gradient-to-r from-retro-pink to-retro-cyan hover:from-retro-cyan hover:to-retro-pink transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
+          <Button type="submit" disabled={loading} className="w-full btn-retro text-lg py-3 bg-gradient-to-r from-retro-pink to-retro-cyan hover:from-retro-cyan hover:to-retro-pink transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed">
             <span className="text-pixel">
-              {loading ? '⌛ PROCESSANDO...' : (isLogin ? '🚀 ENTRAR NO XPUNK' : '✨ CRIAR CONTA')}
+              {loading ? '⌛ PROCESSANDO...' : isLogin ? '🚀 ENTRAR NO XPUNK' : '✨ CRIAR CONTA'}
             </span>
           </Button>
         </form>
@@ -208,10 +175,7 @@ const AuthPage = ({ onAuthSuccess }: AuthPageProps) => {
         {/* Toggle Login/Register */}
         <div className="mt-8 text-center">
           <div className="h-px bg-gradient-to-r from-transparent via-retro-cyan/50 to-transparent mb-4"></div>
-          <button
-            onClick={() => setIsLogin(!isLogin)}
-            className="text-terminal text-sm hover-retro transition-all duration-300 px-4 py-2 border border-retro-cyan/30 rounded hover:border-retro-pink hover:bg-retro-pink/10"
-          >
+          <button onClick={() => setIsLogin(!isLogin)} className="text-terminal text-sm hover-retro transition-all duration-300 px-4 py-2 border border-retro-cyan/30 rounded hover:border-retro-pink hover:bg-retro-pink/10">
             <span className="text-retro-cyan">
               {isLogin ? '📝 Não tem conta? Cadastre-se aqui' : '🔑 Já tem conta? Faça login'}
             </span>
@@ -231,8 +195,6 @@ const AuthPage = ({ onAuthSuccess }: AuthPageProps) => {
           </div>
         </div>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default AuthPage;
