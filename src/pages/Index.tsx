@@ -32,10 +32,7 @@ const Index = () => {
           
           {/* Scrolling text overlay */}
           <div className="absolute bottom-2 left-0 right-0 overflow-hidden">
-            <div className="marquee-text text-xs text-terminal text-primary">
-              ★ Nostalgia dos anos 2000 ★ Mods clássicos ★ Speedruns épicos ★ 
-              Let's Plays nostálgicos ★ Machinima underground ★
-            </div>
+            <div className="marquee-text text-xs text-terminal text-primary">★ Mods clássicos ★ Speedruns épicos ★ Let's Plays nostálgicos ★ Machinima underground ★</div>
           </div>
         </section>
 
