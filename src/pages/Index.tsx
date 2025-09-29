@@ -3,10 +3,8 @@ import CommunitySection from '@/components/CommunitySection';
 import VideoFeedReal from '@/components/VideoFeedReal';
 import SidebarStatsReal from '@/components/SidebarStatsReal';
 import emoGamerHero from '@/assets/emo-gamer-hero.png';
-
 const Index = () => {
-  return (
-    <div className="min-h-screen bg-background">
+  return <div className="min-h-screen bg-background">
       {/* Header */}
       <RetroHeader />
       
@@ -30,12 +28,9 @@ const Index = () => {
             </div>
             
             <div className="hidden lg:block flex-shrink-0 ml-6">
-              <img 
-                src={emoGamerHero} 
-                alt="Emo Gamer 2006" 
-                className="w-64 h-48 object-cover pixel-border scanlines"
-                style={{ imageRendering: 'pixelated' }}
-              />
+              <img src={emoGamerHero} alt="Emo Gamer 2006" className="w-64 h-48 object-cover pixel-border scanlines" style={{
+              imageRendering: 'pixelated'
+            }} />
             </div>
           </div>
           
@@ -75,9 +70,7 @@ const Index = () => {
               <a href="#" className="hover-retro">RSS</a>
             </div>
             
-            <div className="text-xs text-muted-foreground text-mono">
-              © 2006 XPUNK - Powered by nostalgia and emo vibes
-            </div>
+            <div className="text-xs text-muted-foreground text-mono">© 2025 XPUNK - Powered by Los Conrados</div>
             
             <div className="text-xs text-terminal">
               <span className="blink">★</span> Site otimizado para Internet Explorer 6.0 
@@ -96,8 +89,6 @@ const Index = () => {
           </div>
         </footer>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
