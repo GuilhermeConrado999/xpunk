@@ -3,9 +3,11 @@ import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import retroLogoBanner from '@/assets/retro-logo-banner.png';
 import { useAuth } from '@/hooks/useAuth';
-
 const RetroHeader = () => {
-  const { user, signOut } = useAuth();
+  const {
+    user,
+    signOut
+  } = useAuth();
   const [currentTime, setCurrentTime] = useState(new Date().toLocaleString());
 
   // Update time every second for that authentic 2000s feel
@@ -13,26 +15,17 @@ const RetroHeader = () => {
     const timer = setInterval(() => {
       setCurrentTime(new Date().toLocaleString());
     }, 1000);
-    
     return () => clearInterval(timer);
   }, []);
-
-  return (
-    <header className="retro-box border-b-2 border-primary mb-4">
+  return <header className="retro-box border-b-2 border-primary mb-4">
       {/* Top Banner with Logo */}
       <div className="bg-card p-4 scanlines">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <img 
-              src={retroLogoBanner} 
-              alt="RetroGameShare Logo" 
-              className="h-12 pixel-border" 
-            />
+            <img src={retroLogoBanner} alt="RetroGameShare Logo" className="h-12 pixel-border" />
             <div className="text-terminal">
               <div className="text-lg glow-text">XPUNK</div>
-              <div className="text-xs text-muted-foreground">
-                vídeos de games, mods e memórias — estilo 2006
-              </div>
+              <div className="text-xs text-muted-foreground">Venha conhecer algo novo!</div>
             </div>
           </div>
           
@@ -57,8 +50,7 @@ const RetroHeader = () => {
                 HOME
               </Button>
             </Link>
-            {user && (
-              <>
+            {user && <>
                 <Button variant="ghost" className="btn-retro text-xs">
                   UPLOAD
                 </Button>
@@ -70,28 +62,23 @@ const RetroHeader = () => {
                     PERFIL
                   </Button>
                 </Link>
-              </>
-            )}
+              </>}
             <Button variant="ghost" className="btn-retro text-xs">
               GUESTBOOK
             </Button>
           </div>
           
           <div className="flex space-x-2">
-            {user ? (
-              <Button onClick={signOut} className="btn-retro text-xs">
+            {user ? <Button onClick={signOut} className="btn-retro text-xs">
                 LOGOUT
-              </Button>
-            ) : (
-              <>
+              </Button> : <>
                 <Button className="btn-retro text-xs">
                   LOGIN
                 </Button>
                 <Button variant="outline" className="btn-retro text-xs">
                   CADASTRO
                 </Button>
-              </>
-            )}
+              </>}
           </div>
         </div>
       </nav>
@@ -103,8 +90,6 @@ const RetroHeader = () => {
           Let's Play de Silent Hill disponível ★ Machinima contest este mês! ★
         </div>
       </div>
-    </header>
-  );
+    </header>;
 };
-
 export default RetroHeader;
