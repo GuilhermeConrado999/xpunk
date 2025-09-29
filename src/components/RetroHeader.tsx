@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { Link } from 'react-router-dom';
 import retroLogoBanner from '@/assets/retro-logo-banner.png';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -51,9 +52,11 @@ const RetroHeader = () => {
       <nav className="bg-secondary p-3 border-t border-border">
         <div className="flex items-center justify-between">
           <div className="flex space-x-1">
-            <Button variant="ghost" className="btn-retro text-xs">
-              HOME
-            </Button>
+            <Link to="/">
+              <Button variant="ghost" className="btn-retro text-xs">
+                HOME
+              </Button>
+            </Link>
             {user && (
               <>
                 <Button variant="ghost" className="btn-retro text-xs">
@@ -62,9 +65,11 @@ const RetroHeader = () => {
                 <Button variant="ghost" className="btn-retro text-xs">
                   COMUNIDADES
                 </Button>
-                <Button variant="ghost" className="btn-retro text-xs">
-                  PERFIL
-                </Button>
+                <Link to="/profile">
+                  <Button variant="ghost" className="btn-retro text-xs">
+                    PERFIL
+                  </Button>
+                </Link>
               </>
             )}
             <Button variant="ghost" className="btn-retro text-xs">
