@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import cyberpunkBg from '@/assets/cyberpunk-bg.jpg';
 
 interface AuthPageProps {
   onAuthSuccess: () => void;
@@ -67,13 +68,66 @@ const AuthPage = ({ onAuthSuccess }: AuthPageProps) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-retro-bg via-retro-purple/20 to-retro-cyan/20 flex items-center justify-center p-4 relative overflow-hidden">
+    <div 
+      className="min-h-screen relative overflow-hidden flex items-center justify-center p-4"
+      style={{
+        backgroundImage: `url(${cyberpunkBg})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
+      }}
+    >
+      {/* Dark Overlay */}
+      <div className="absolute inset-0 bg-black/60"></div>
+      
       {/* Background Effects */}
-      <div className="absolute inset-0 bg-retro-pattern animate-pulse opacity-30"></div>
+      <div className="absolute inset-0 bg-gradient-to-br from-retro-purple/30 via-transparent to-retro-cyan/30"></div>
       <div className="scanlines absolute inset-0 pointer-events-none"></div>
       
+      {/* Hero Text - Left Side */}
+      <div className="absolute left-8 top-1/2 -translate-y-1/2 z-10 hidden lg:block max-w-md">
+        <div className="text-left space-y-4">
+          <h2 className="text-pixel text-4xl glow-text text-retro-cyan animate-[glow_3s_ease-in-out_infinite_alternate]">
+            XPUNK
+          </h2>
+          <h3 className="text-terminal text-xl text-retro-pink">
+            O FUTURO É AGORA
+          </h3>
+          <div className="space-y-2 text-mono text-sm text-white/90 leading-relaxed">
+            <p className="border-l-2 border-retro-cyan pl-4">
+              🌐 Entre na matrix dos vídeos underground
+            </p>
+            <p className="border-l-2 border-retro-pink pl-4">
+              🎮 Descubra conteúdo que não existe em lugar nenhum
+            </p>
+            <p className="border-l-2 border-retro-cyan pl-4">
+              💾 Nostalgia pura dos anos 2000
+            </p>
+            <p className="border-l-2 border-retro-pink pl-4">
+              🚀 Comunidade cyberpunk brasileira
+            </p>
+          </div>
+          <div className="text-terminal text-xs text-retro-cyan/70 mt-6">
+            <div className="animate-pulse">
+              ► CONECTANDO AO SERVIDOR...
+            </div>
+            <div className="mt-1">
+              ► STATUS: ONLINE
+            </div>
+          </div>
+        </div>
+      </div>
+      
       {/* Main Auth Container */}
-      <div className="retro-box p-8 w-full max-w-md bg-card/95 backdrop-blur-sm relative z-10 animate-fade-in">
+      <div className="retro-box p-8 w-full max-w-md bg-card/95 backdrop-blur-md relative z-10 animate-fade-in shadow-2xl border border-retro-cyan/30">
+        {/* Mobile Hero Text */}
+        <div className="text-center mb-6 lg:hidden">
+          <div className="text-mono text-xs text-retro-cyan space-y-1">
+            <p>🌐 O futuro dos vídeos underground</p>
+            <p>💾 Nostalgia cyberpunk brasileira</p>
+          </div>
+        </div>
+        
         {/* Header with Logo */}
         <div className="text-center mb-8">
           <div className="mb-4 relative">
