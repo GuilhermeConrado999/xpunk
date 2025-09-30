@@ -259,6 +259,7 @@ const Profile = () => {
         description: "Apenas arquivos GIF são permitidos!",
         variant: "destructive"
       });
+      event.target.value = '';
       return;
     }
 
@@ -269,6 +270,7 @@ const Profile = () => {
         description: "O arquivo deve ter no máximo 10MB!",
         variant: "destructive"
       });
+      event.target.value = '';
       return;
     }
 
@@ -282,12 +284,23 @@ const Profile = () => {
       }
 
       const fileExt = file.name.split('.').pop();
-      const filePath = `${user.id}/background.${fileExt}`;
+      const timestamp = Date.now();
+      const filePath = `${user.id}/background-${timestamp}.${fileExt}`;
+
+      // Remove old background if exists
+      if (profile?.background_url) {
+        const oldPath = profile.background_url.split('/backgrounds/')[1];
+        if (oldPath) {
+          await supabase.storage
+            .from('backgrounds')
+            .remove([oldPath]);
+        }
+      }
 
       // Upload to storage
       const { error: uploadError } = await supabase.storage
         .from('backgrounds')
-        .upload(filePath, file, { upsert: true });
+        .upload(filePath, file);
 
       if (uploadError) throw uploadError;
 
@@ -318,6 +331,7 @@ const Profile = () => {
       });
     } finally {
       setUploadingBackground(false);
+      event.target.value = '';
     }
   };
 
