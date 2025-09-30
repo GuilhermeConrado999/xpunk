@@ -35,7 +35,9 @@ const ChatDialog: React.FC<ChatDialogProps> = ({
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (open && user) {
@@ -71,9 +73,12 @@ const ChatDialog: React.FC<ChatDialogProps> = ({
   useEffect(() => {
     // Auto scroll para o fim quando novas mensagens chegam
     if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      const scrollElement = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (scrollElement) {
+        scrollElement.scrollTop = scrollElement.scrollHeight;
+      }
     }
-  }, [messages]);
+  }, [messages, isTyping]);
 
   const fetchMessages = async () => {
     if (!user) return;
@@ -119,6 +124,11 @@ const ChatDialog: React.FC<ChatDialogProps> = ({
     }
 
     setLoading(false);
+    
+    // Manter foco no input
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 0);
   };
 
   const formatTime = (dateString: string) => {
@@ -165,17 +175,28 @@ const ChatDialog: React.FC<ChatDialogProps> = ({
                 </div>
               );
             })}
+            {isTyping && (
+              <div className="flex justify-start">
+                <div className="max-w-[70%] p-3 rounded-lg bg-retro-purple/20 border border-retro-purple/50">
+                  <p className="text-mono text-sm text-muted-foreground">
+                    {friendName} está digitando...
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         </ScrollArea>
 
         <div className="flex gap-2 p-4 border-t border-border">
           <Input
+            ref={inputRef}
             placeholder="Digite sua mensagem..."
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
             className="input-retro"
             disabled={loading}
+            autoFocus
           />
           <Button
             onClick={sendMessage}

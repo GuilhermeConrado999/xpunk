@@ -41,16 +41,18 @@ const FriendsList: React.FC<FriendsListProps> = ({ onOpenChat }) => {
   const fetchFriends = async () => {
     if (!user) return;
 
-    // Buscar amigos aceitos com seus perfis
+    // Buscar amigos aceitos (em ambas as direções)
     const { data: friendshipsData, error: friendsError } = await supabase
       .from('friendships')
       .select('*')
-      .eq('user_id', user.id)
+      .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`)
       .eq('status', 'accepted');
 
     if (!friendsError && friendshipsData) {
-      // Buscar perfis dos amigos
-      const friendIds = friendshipsData.map(f => f.friend_id);
+      // Buscar perfis dos amigos (considerar ambas as direções)
+      const friendIds = friendshipsData.map(f => 
+        f.user_id === user.id ? f.friend_id : f.user_id
+      );
       const { data: profilesData } = await supabase
         .from('profiles')
         .select('*')
@@ -58,9 +60,11 @@ const FriendsList: React.FC<FriendsListProps> = ({ onOpenChat }) => {
 
       // Combinar dados
       const friendsWithProfiles = friendshipsData.map(friendship => {
-        const profile = profilesData?.find(p => p.user_id === friendship.friend_id);
+        const friendId = friendship.user_id === user.id ? friendship.friend_id : friendship.user_id;
+        const profile = profilesData?.find(p => p.user_id === friendId);
         return {
           ...friendship,
+          friend_id: friendId,
           profiles: {
             username: profile?.username || '',
             display_name: profile?.display_name || '',
