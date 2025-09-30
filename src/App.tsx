@@ -29,9 +29,10 @@ const AppContent = () => {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Index />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="*" element={<NotFound />} />
+          <Route path="/" element={<Index />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/profile/:userId" element={<Profile />} />
+          <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
   );

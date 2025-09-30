@@ -10,8 +10,12 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
+import { useParams } from 'react-router-dom';
 import RetroHeader from '@/components/RetroHeader';
 import VideoCardReal from '@/components/VideoCardReal';
+import FriendsList from '@/components/FriendsList';
+import UserSearch from '@/components/UserSearch';
+import ChatDialog from '@/components/ChatDialog';
 
 interface Profile {
   id: string;
@@ -49,6 +53,7 @@ interface UserStats {
 
 const Profile = () => {
   const { user } = useAuth();
+  const { userId } = useParams();
   const { toast } = useToast();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [userVideos, setUserVideos] = useState<Video[]>([]);
@@ -60,45 +65,57 @@ const Profile = () => {
     username: ''
   });
   const [loading, setLoading] = useState(true);
+  const [friendshipStatus, setFriendshipStatus] = useState<string | null>(null);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatFriendId, setChatFriendId] = useState('');
+  const [chatFriendName, setChatFriendName] = useState('');
+
+  const isOwnProfile = !userId || userId === user?.id;
+  const profileUserId = userId || user?.id;
 
   useEffect(() => {
-    if (user) {
+    if (profileUserId) {
       fetchProfile();
       fetchUserVideos();
       fetchUserStats();
+      if (!isOwnProfile && user) {
+        checkFriendshipStatus();
+      }
     }
-  }, [user]);
+  }, [profileUserId, user, userId]);
 
   const fetchProfile = async () => {
-    if (!user) return;
+    if (!profileUserId) return;
 
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', profileUserId)
       .single();
 
     if (error) {
       console.error('Erro ao buscar perfil:', error);
     } else {
       setProfile(data);
-      setEditData({
-        display_name: data.display_name || '',
-        bio: data.bio || '',
-        username: data.username || ''
-      });
+      if (isOwnProfile) {
+        setEditData({
+          display_name: data.display_name || '',
+          bio: data.bio || '',
+          username: data.username || ''
+        });
+      }
     }
     setLoading(false);
   };
 
   const fetchUserVideos = async () => {
-    if (!user) return;
+    if (!profileUserId) return;
 
     // Buscar vídeos do usuário
     const { data: videosData, error: videosError } = await supabase
       .from('videos')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', profileUserId)
       .order('created_at', { ascending: false });
 
     if (videosError) {
@@ -110,7 +127,7 @@ const Profile = () => {
     const { data: profileData, error: profileError } = await supabase
       .from('profiles')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', profileUserId)
       .single();
 
     if (profileError) {
@@ -128,18 +145,18 @@ const Profile = () => {
   };
 
   const fetchUserStats = async () => {
-    if (!user) return;
+    if (!profileUserId) return;
 
     // Buscar estatísticas do usuário
     const { data: videos } = await supabase
       .from('videos')
       .select('views, created_at')
-      .eq('user_id', user.id);
+      .eq('user_id', profileUserId);
 
     const { data: ratings } = await supabase
       .from('ratings')
       .select('rating')
-      .eq('user_id', user.id);
+      .eq('user_id', profileUserId);
 
     const totalVideos = videos?.length || 0;
     const totalViews = videos?.reduce((sum, video) => sum + (video.views || 0), 0) || 0;
@@ -161,6 +178,50 @@ const Profile = () => {
       level,
       xp: xp % 1000
     });
+  };
+
+  const checkFriendshipStatus = async () => {
+    if (!user || !profileUserId) return;
+
+    const { data } = await supabase
+      .from('friendships')
+      .select('status')
+      .or(`and(user_id.eq.${user.id},friend_id.eq.${profileUserId}),and(user_id.eq.${profileUserId},friend_id.eq.${user.id})`)
+      .maybeSingle();
+
+    setFriendshipStatus(data?.status || null);
+  };
+
+  const sendFriendRequest = async () => {
+    if (!user || !profileUserId) return;
+
+    const { error } = await supabase
+      .from('friendships')
+      .insert({
+        user_id: user.id,
+        friend_id: profileUserId,
+        status: 'pending'
+      });
+
+    if (error) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível enviar a solicitação",
+        variant: "destructive"
+      });
+    } else {
+      toast({
+        title: "Sucesso",
+        description: "Solicitação de amizade enviada!"
+      });
+      checkFriendshipStatus();
+    }
+  };
+
+  const openChat = (friendId: string, friendName: string) => {
+    setChatFriendId(friendId);
+    setChatFriendName(friendName);
+    setChatOpen(true);
   };
 
   const updateProfile = async () => {
@@ -272,12 +333,42 @@ const Profile = () => {
                   </p>
                 </div>
                 
-                <Button 
-                  onClick={() => setIsEditing(!isEditing)}
-                  className="btn-retro"
-                >
-                  {isEditing ? 'CANCELAR' : 'EDITAR PERFIL'}
-                </Button>
+                {isOwnProfile ? (
+                  <Button 
+                    onClick={() => setIsEditing(!isEditing)}
+                    className="btn-retro"
+                  >
+                    {isEditing ? 'CANCELAR' : 'EDITAR PERFIL'}
+                  </Button>
+                ) : (
+                  <div className="flex gap-2">
+                    {friendshipStatus === 'accepted' && (
+                      <Button 
+                        onClick={() => openChat(profileUserId!, profile.display_name || profile.username)}
+                        className="btn-retro"
+                      >
+                        ENVIAR MENSAGEM
+                      </Button>
+                    )}
+                    {!friendshipStatus && (
+                      <Button 
+                        onClick={sendFriendRequest}
+                        className="btn-retro"
+                      >
+                        ADICIONAR AMIGO
+                      </Button>
+                    )}
+                    {friendshipStatus === 'pending' && (
+                      <Button 
+                        disabled
+                        variant="outline"
+                        className="btn-retro"
+                      >
+                        SOLICITAÇÃO PENDENTE
+                      </Button>
+                    )}
+                  </div>
+                )}
               </div>
 
               <p className="text-mono text-sm leading-relaxed max-w-2xl">
@@ -361,11 +452,16 @@ const Profile = () => {
 
         {/* Profile Tabs */}
         <Tabs defaultValue="videos" className="space-y-6">
-          <TabsList className="grid grid-cols-4 bg-card retro-box">
-            <TabsTrigger value="videos" className="text-terminal">MEUS VÍDEOS</TabsTrigger>
+          <TabsList className={`grid ${isOwnProfile ? 'grid-cols-5' : 'grid-cols-4'} bg-card retro-box`}>
+            <TabsTrigger value="videos" className="text-terminal">
+              {isOwnProfile ? 'MEUS VÍDEOS' : 'VÍDEOS'}
+            </TabsTrigger>
             <TabsTrigger value="stats" className="text-terminal">ESTATÍSTICAS</TabsTrigger>
             <TabsTrigger value="achievements" className="text-terminal">CONQUISTAS</TabsTrigger>
             <TabsTrigger value="activity" className="text-terminal">ATIVIDADE</TabsTrigger>
+            {isOwnProfile && (
+              <TabsTrigger value="friends" className="text-terminal">AMIGOS</TabsTrigger>
+            )}
           </TabsList>
 
           {/* Videos Tab */}
@@ -507,8 +603,26 @@ const Profile = () => {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Friends Tab - Only for own profile */}
+          {isOwnProfile && (
+            <TabsContent value="friends">
+              <div className="space-y-6">
+                <UserSearch />
+                <FriendsList onOpenChat={openChat} />
+              </div>
+            </TabsContent>
+          )}
         </Tabs>
       </div>
+
+      {/* Chat Dialog */}
+      <ChatDialog
+        open={chatOpen}
+        onOpenChange={setChatOpen}
+        friendId={chatFriendId}
+        friendName={chatFriendName}
+      />
     </div>
   );
 };
