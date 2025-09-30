@@ -24,6 +24,7 @@ interface Profile {
   display_name: string;
   bio: string;
   avatar_url: string;
+  background_url: string;
   created_at: string;
 }
 
@@ -70,6 +71,7 @@ const Profile = () => {
   const [chatFriendId, setChatFriendId] = useState('');
   const [chatFriendName, setChatFriendName] = useState('');
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [uploadingBackground, setUploadingBackground] = useState(false);
 
   const isOwnProfile = !userId || userId === user?.id;
   const profileUserId = userId || user?.id;
@@ -225,6 +227,100 @@ const Profile = () => {
     setChatOpen(true);
   };
 
+  const validateGifDimensions = (file: File): Promise<boolean> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        const isValid = img.width >= 1920 && img.height >= 1080;
+        resolve(isValid);
+      };
+      
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        resolve(false);
+      };
+      
+      img.src = url;
+    });
+  };
+
+  const handleBackgroundUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!user || !event.target.files || event.target.files.length === 0) return;
+
+    const file = event.target.files[0];
+    
+    // Validar tipo de arquivo
+    if (file.type !== 'image/gif') {
+      toast({
+        title: "Erro",
+        description: "Apenas arquivos GIF são permitidos!",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validar tamanho (máximo 10MB)
+    if (file.size > 10485760) {
+      toast({
+        title: "Erro",
+        description: "O arquivo deve ter no máximo 10MB!",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setUploadingBackground(true);
+
+    try {
+      // Validar dimensões
+      const isValidSize = await validateGifDimensions(file);
+      if (!isValidSize) {
+        throw new Error("O GIF deve ter resolução mínima de 1920x1080!");
+      }
+
+      const fileExt = file.name.split('.').pop();
+      const filePath = `${user.id}/background.${fileExt}`;
+
+      // Upload to storage
+      const { error: uploadError } = await supabase.storage
+        .from('backgrounds')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('backgrounds')
+        .getPublicUrl(filePath);
+
+      // Update profile with new background URL
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ background_url: publicUrl })
+        .eq('user_id', user.id);
+
+      if (updateError) throw updateError;
+
+      toast({
+        title: "Sucesso",
+        description: "Background atualizado com sucesso!"
+      });
+
+      fetchProfile();
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error.message || "Não foi possível atualizar o background",
+        variant: "destructive"
+      });
+    } finally {
+      setUploadingBackground(false);
+    }
+  };
+
   const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (!user || !event.target.files || event.target.files.length === 0) return;
 
@@ -341,6 +437,13 @@ const Profile = () => {
       <div className="container mx-auto px-4 py-6">
         {/* Profile Header - Steam Style */}
         <div className="retro-box bg-card p-6 mb-6 scanlines relative overflow-hidden">
+          {/* Custom Background */}
+          {profile.background_url && (
+            <div 
+              className="absolute inset-0 bg-cover bg-center opacity-30"
+              style={{ backgroundImage: `url(${profile.background_url})` }}
+            />
+          )}
           <div className="absolute inset-0 bg-gradient-to-r from-retro-purple/10 to-retro-cyan/10"></div>
           
           <div className="relative flex flex-col lg:flex-row items-start lg:items-center gap-6">
@@ -500,6 +603,61 @@ const Profile = () => {
                   className="w-full p-3 bg-background border border-border rounded text-mono text-sm min-h-24"
                   placeholder="Conte sobre você, seus jogos favoritos, etc..."
                 />
+              </div>
+
+              <div>
+                <Label htmlFor="background-upload" className="text-terminal">
+                  Background Customizado (GIF - Mínimo 1920x1080)
+                </Label>
+                <div className="space-y-2">
+                  {profile.background_url && (
+                    <div className="relative w-full h-32 rounded overflow-hidden border border-border">
+                      <img 
+                        src={profile.background_url} 
+                        alt="Background atual" 
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    <label 
+                      htmlFor="background-upload"
+                      className="btn-retro cursor-pointer inline-flex items-center justify-center"
+                    >
+                      {uploadingBackground ? 'ENVIANDO...' : 'ESCOLHER GIF'}
+                    </label>
+                    <input
+                      id="background-upload"
+                      type="file"
+                      accept="image/gif"
+                      onChange={handleBackgroundUpload}
+                      disabled={uploadingBackground}
+                      className="hidden"
+                    />
+                    {profile.background_url && (
+                      <Button
+                        onClick={async () => {
+                          await supabase
+                            .from('profiles')
+                            .update({ background_url: null })
+                            .eq('user_id', user!.id);
+                          fetchProfile();
+                          toast({
+                            title: "Sucesso",
+                            description: "Background removido!"
+                          });
+                        }}
+                        variant="outline"
+                        className="btn-retro"
+                      >
+                        REMOVER
+                      </Button>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground text-mono">
+                    Apenas GIF • Resolução mínima: 1920x1080 • Máximo: 10MB
+                  </p>
+                </div>
               </div>
               
               <div className="flex gap-2">
