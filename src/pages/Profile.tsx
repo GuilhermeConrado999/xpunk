@@ -69,6 +69,7 @@ const Profile = () => {
   const [chatOpen, setChatOpen] = useState(false);
   const [chatFriendId, setChatFriendId] = useState('');
   const [chatFriendName, setChatFriendName] = useState('');
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   const isOwnProfile = !userId || userId === user?.id;
   const profileUserId = userId || user?.id;
@@ -224,6 +225,53 @@ const Profile = () => {
     setChatOpen(true);
   };
 
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!user || !event.target.files || event.target.files.length === 0) return;
+
+    const file = event.target.files[0];
+    const fileExt = file.name.split('.').pop();
+    const filePath = `${user.id}/avatar.${fileExt}`;
+
+    setUploadingAvatar(true);
+
+    try {
+      // Upload to storage
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      // Update profile with new avatar URL
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: publicUrl })
+        .eq('user_id', user.id);
+
+      if (updateError) throw updateError;
+
+      toast({
+        title: "Sucesso",
+        description: "Avatar atualizado com sucesso!"
+      });
+
+      fetchProfile();
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error.message || "Não foi possível atualizar o avatar",
+        variant: "destructive"
+      });
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
   const updateProfile = async () => {
     if (!user || !profile) return;
 
@@ -298,12 +346,32 @@ const Profile = () => {
           <div className="relative flex flex-col lg:flex-row items-start lg:items-center gap-6">
             {/* Avatar Section */}
             <div className="flex flex-col items-center space-y-4">
-              <Avatar className="w-32 h-32 pixel-border">
-                <AvatarImage src={profile.avatar_url || undefined} />
-                <AvatarFallback className="text-2xl bg-retro-purple text-white">
-                  {profile.username.charAt(0).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
+              <div className="relative group">
+                <Avatar className="w-32 h-32 pixel-border">
+                  <AvatarImage src={profile.avatar_url || undefined} />
+                  <AvatarFallback className="text-2xl bg-retro-purple text-white">
+                    {profile.username.charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                {isOwnProfile && (
+                  <label 
+                    htmlFor="avatar-upload" 
+                    className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-full"
+                  >
+                    <span className="text-white text-xs text-center px-2">
+                      {uploadingAvatar ? 'ENVIANDO...' : 'ALTERAR FOTO'}
+                    </span>
+                    <input
+                      id="avatar-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleAvatarUpload}
+                      disabled={uploadingAvatar}
+                      className="hidden"
+                    />
+                  </label>
+                )}
+              </div>
               
               {userStats && (
                 <div className="text-center space-y-1">
