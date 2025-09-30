@@ -190,9 +190,7 @@ const AuthPage = ({
           <div className="text-xs text-retro-pink text-mono">
             © 2006 XPUNK - Powered by nostalgia & cyberpunk dreams
           </div>
-          <div className="text-xs text-retro-cyan text-mono mt-1">
-            🌐 System.Version.2006.Build.1337
-          </div>
+          <div className="text-xs text-retro-cyan text-mono mt-1">🌐 System.Version.2025</div>
         </div>
       </div>
     </div>;
