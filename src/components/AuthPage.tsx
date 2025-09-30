@@ -154,7 +154,7 @@ const AuthPage = ({
                 <Label htmlFor="username" className="text-terminal text-sm text-retro-cyan flex items-center gap-2">
                   <span className="text-retro-pink">{'>'}</span> USERNAME:
                 </Label>
-                <Input id="username" value={username} onChange={e => setUsername(e.target.value)} className="text-mono bg-retro-dark/50 border-retro-cyan/30 focus:border-retro-pink focus:ring-retro-pink/20 transition-all duration-300" placeholder="xXxCyberGamer2006xXx" />
+                <Input id="username" value={username} onChange={e => setUsername(e.target.value)} placeholder="xXxCyberGamer2006xXx" className="text-mono bg-retro-dark/50 border-retro-cyan/30 focus:border-retro-pink focus:ring-retro-pink/20 transition-all duration-300 bg-slate-950" />
               </div>}
 
             <div className="group">
