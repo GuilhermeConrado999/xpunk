@@ -38,33 +38,64 @@ const ChatDialog: React.FC<ChatDialogProps> = ({
   const [isTyping, setIsTyping] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const channelRef = useRef<any>(null);
 
   useEffect(() => {
     if (open && user) {
       fetchMessages();
       markMessagesAsRead();
 
-      // Configurar realtime para novas mensagens
+      // Configurar realtime para novas mensagens e presença (digitando)
       const channel = supabase
-        .channel('messages')
+        .channel(`chat:${user.id}:${friendId}`)
         .on(
           'postgres_changes',
           {
             event: 'INSERT',
             schema: 'public',
-            table: 'messages',
-            filter: `receiver_id=eq.${user.id}`
+            table: 'messages'
           },
           (payload) => {
-            if (payload.new.sender_id === friendId) {
-              setMessages((prev) => [...prev, payload.new as Message]);
-              markMessagesAsRead();
+            const newMessage = payload.new as Message;
+            // Capturar mensagens enviadas para mim OU mensagens que eu enviei
+            if (
+              (newMessage.sender_id === friendId && newMessage.receiver_id === user.id) ||
+              (newMessage.sender_id === user.id && newMessage.receiver_id === friendId)
+            ) {
+              setMessages((prev) => {
+                // Evitar duplicatas
+                if (prev.some(m => m.id === newMessage.id)) return prev;
+                return [...prev, newMessage];
+              });
+              if (newMessage.sender_id === friendId) {
+                markMessagesAsRead();
+              }
             }
           }
         )
-        .subscribe();
+        .on('presence', { event: 'sync' }, () => {
+          const state = channel.presenceState();
+          const presences = Object.values(state).flat() as any[];
+          const friendPresence = presences.find((p) => p.user_id === friendId);
+          setIsTyping(friendPresence?.typing || false);
+        })
+        .subscribe(async (status) => {
+          if (status === 'SUBSCRIBED') {
+            await channel.track({
+              user_id: user.id,
+              typing: false,
+              online_at: new Date().toISOString()
+            });
+          }
+        });
+
+      channelRef.current = channel;
 
       return () => {
+        if (typingTimeoutRef.current) {
+          clearTimeout(typingTimeoutRef.current);
+        }
         supabase.removeChannel(channel);
       };
     }
@@ -105,10 +136,44 @@ const ChatDialog: React.FC<ChatDialogProps> = ({
       .eq('read', false);
   };
 
+  const handleTyping = async () => {
+    if (!channelRef.current || !user) return;
+
+    // Limpar timeout anterior
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    // Notificar que está digitando
+    await channelRef.current.track({
+      user_id: user.id,
+      typing: true,
+      online_at: new Date().toISOString()
+    });
+
+    // Após 2 segundos sem digitar, marcar como não digitando
+    typingTimeoutRef.current = setTimeout(async () => {
+      await channelRef.current?.track({
+        user_id: user.id,
+        typing: false,
+        online_at: new Date().toISOString()
+      });
+    }, 2000);
+  };
+
   const sendMessage = async () => {
     if (!newMessage.trim() || !user || loading) return;
 
     setLoading(true);
+
+    // Parar de mostrar "digitando" antes de enviar
+    if (channelRef.current) {
+      await channelRef.current.track({
+        user_id: user.id,
+        typing: false,
+        online_at: new Date().toISOString()
+      });
+    }
 
     const { error } = await supabase
       .from('messages')
@@ -120,7 +185,6 @@ const ChatDialog: React.FC<ChatDialogProps> = ({
 
     if (!error) {
       setNewMessage('');
-      fetchMessages();
     }
 
     setLoading(false);
@@ -192,7 +256,10 @@ const ChatDialog: React.FC<ChatDialogProps> = ({
             ref={inputRef}
             placeholder="Digite sua mensagem..."
             value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
+            onChange={(e) => {
+              setNewMessage(e.target.value);
+              handleTyping();
+            }}
             onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
             className="input-retro"
             disabled={loading}
