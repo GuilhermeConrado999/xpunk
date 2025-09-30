@@ -24,7 +24,7 @@ interface Profile {
   display_name: string;
   bio: string;
   avatar_url: string;
-  background_url: string;
+  background_url: string | null;
   created_at: string;
 }
 
@@ -439,12 +439,20 @@ const Profile = () => {
         <div className="retro-box bg-card p-6 mb-6 scanlines relative overflow-hidden">
           {/* Custom Background */}
           {profile.background_url && (
-            <div 
-              className="absolute inset-0 bg-cover bg-center opacity-30"
-              style={{ backgroundImage: `url(${profile.background_url})` }}
-            />
+            <>
+              <div className="absolute inset-0 z-0">
+                <img 
+                  src={profile.background_url} 
+                  alt="Profile background"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="absolute inset-0 bg-gradient-to-b from-background/60 via-background/80 to-background/90 z-0"></div>
+            </>
           )}
-          <div className="absolute inset-0 bg-gradient-to-r from-retro-purple/10 to-retro-cyan/10"></div>
+          {!profile.background_url && (
+            <div className="absolute inset-0 bg-gradient-to-r from-retro-purple/10 to-retro-cyan/10 z-0"></div>
+          )}
           
           <div className="relative flex flex-col lg:flex-row items-start lg:items-center gap-6">
             {/* Avatar Section */}
