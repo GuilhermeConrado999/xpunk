@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Loader2 } from 'lucide-react';
 
 interface Message {
   id: string;
@@ -46,43 +47,64 @@ const ChatDialog: React.FC<ChatDialogProps> = ({
       fetchMessages();
       markMessagesAsRead();
 
-      // Configurar realtime para novas mensagens e presença (digitando)
-      const channel = supabase
-        .channel(`chat:${user.id}:${friendId}`)
+      // Configurar realtime separadamente para mensagens e presença
+      const messagesChannel = supabase
+        .channel(`messages:${user.id}:${friendId}`, {
+          config: {
+            broadcast: { self: true }
+          }
+        })
         .on(
           'postgres_changes',
           {
             event: 'INSERT',
             schema: 'public',
-            table: 'messages'
+            table: 'messages',
+            filter: `sender_id=eq.${friendId}`
           },
           (payload) => {
             const newMessage = payload.new as Message;
-            // Capturar mensagens enviadas para mim OU mensagens que eu enviei
-            if (
-              (newMessage.sender_id === friendId && newMessage.receiver_id === user.id) ||
-              (newMessage.sender_id === user.id && newMessage.receiver_id === friendId)
-            ) {
+            if (newMessage.receiver_id === user.id) {
               setMessages((prev) => {
-                // Evitar duplicatas
                 if (prev.some(m => m.id === newMessage.id)) return prev;
                 return [...prev, newMessage];
               });
-              if (newMessage.sender_id === friendId) {
-                markMessagesAsRead();
-              }
+              markMessagesAsRead();
             }
           }
         )
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'messages',
+            filter: `sender_id=eq.${user.id}`
+          },
+          (payload) => {
+            const newMessage = payload.new as Message;
+            if (newMessage.receiver_id === friendId) {
+              setMessages((prev) => {
+                if (prev.some(m => m.id === newMessage.id)) return prev;
+                return [...prev, newMessage];
+              });
+            }
+          }
+        )
+        .subscribe();
+
+      // Canal separado para presença (digitando)
+      const presenceChannel = supabase
+        .channel(`presence:${user.id}:${friendId}`)
         .on('presence', { event: 'sync' }, () => {
-          const state = channel.presenceState();
+          const state = presenceChannel.presenceState();
           const presences = Object.values(state).flat() as any[];
-          const friendPresence = presences.find((p) => p.user_id === friendId);
+          const friendPresence = presences.find((p: any) => p.user_id === friendId);
           setIsTyping(friendPresence?.typing || false);
         })
         .subscribe(async (status) => {
           if (status === 'SUBSCRIBED') {
-            await channel.track({
+            await presenceChannel.track({
               user_id: user.id,
               typing: false,
               online_at: new Date().toISOString()
@@ -90,13 +112,14 @@ const ChatDialog: React.FC<ChatDialogProps> = ({
           }
         });
 
-      channelRef.current = channel;
+      channelRef.current = presenceChannel;
 
       return () => {
         if (typingTimeoutRef.current) {
           clearTimeout(typingTimeoutRef.current);
         }
-        supabase.removeChannel(channel);
+        supabase.removeChannel(messagesChannel);
+        supabase.removeChannel(presenceChannel);
       };
     }
   }, [open, user, friendId]);
@@ -240,8 +263,9 @@ const ChatDialog: React.FC<ChatDialogProps> = ({
               );
             })}
             {isTyping && (
-              <div className="flex justify-start">
-                <div className="max-w-[70%] p-3 rounded-lg bg-retro-purple/20 border border-retro-purple/50">
+              <div className="flex justify-start items-center gap-2">
+                <div className="max-w-[70%] p-3 rounded-lg bg-retro-purple/20 border border-retro-purple/50 flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin text-retro-purple" />
                   <p className="text-mono text-sm text-muted-foreground">
                     {friendName} está digitando...
                   </p>
