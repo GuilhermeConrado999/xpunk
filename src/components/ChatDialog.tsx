@@ -47,55 +47,50 @@ const ChatDialog: React.FC<ChatDialogProps> = ({
       fetchMessages();
       markMessagesAsRead();
 
-      // Configurar realtime separadamente para mensagens e presença
+      // Canal único para mensagens - sem filtros complexos
       const messagesChannel = supabase
-        .channel(`messages:${user.id}:${friendId}`, {
-          config: {
-            broadcast: { self: true }
-          }
-        })
+        .channel(`chat-messages-${user.id}-${friendId}`)
         .on(
           'postgres_changes',
           {
             event: 'INSERT',
             schema: 'public',
-            table: 'messages',
-            filter: `sender_id=eq.${friendId}`
+            table: 'messages'
           },
           (payload) => {
+            console.log('Nova mensagem recebida:', payload);
             const newMessage = payload.new as Message;
-            if (newMessage.receiver_id === user.id) {
+            
+            // Verificar se a mensagem é relevante para esta conversa
+            const isRelevant = 
+              (newMessage.sender_id === user.id && newMessage.receiver_id === friendId) ||
+              (newMessage.sender_id === friendId && newMessage.receiver_id === user.id);
+            
+            if (isRelevant) {
               setMessages((prev) => {
-                if (prev.some(m => m.id === newMessage.id)) return prev;
+                // Evitar duplicatas
+                if (prev.some(m => m.id === newMessage.id)) {
+                  console.log('Mensagem duplicada ignorada');
+                  return prev;
+                }
+                console.log('Adicionando nova mensagem ao estado');
                 return [...prev, newMessage];
               });
-              markMessagesAsRead();
+              
+              // Marcar como lida se foi enviada pelo amigo
+              if (newMessage.sender_id === friendId) {
+                markMessagesAsRead();
+              }
             }
           }
         )
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'messages',
-            filter: `sender_id=eq.${user.id}`
-          },
-          (payload) => {
-            const newMessage = payload.new as Message;
-            if (newMessage.receiver_id === friendId) {
-              setMessages((prev) => {
-                if (prev.some(m => m.id === newMessage.id)) return prev;
-                return [...prev, newMessage];
-              });
-            }
-          }
-        )
-        .subscribe();
+        .subscribe((status) => {
+          console.log('Status do canal de mensagens:', status);
+        });
 
       // Canal separado para presença (digitando)
       const presenceChannel = supabase
-        .channel(`presence:${user.id}:${friendId}`)
+        .channel(`chat-presence-${user.id}-${friendId}`)
         .on('presence', { event: 'sync' }, () => {
           const state = presenceChannel.presenceState();
           const presences = Object.values(state).flat() as any[];
@@ -103,6 +98,7 @@ const ChatDialog: React.FC<ChatDialogProps> = ({
           setIsTyping(friendPresence?.typing || false);
         })
         .subscribe(async (status) => {
+          console.log('Status do canal de presença:', status);
           if (status === 'SUBSCRIBED') {
             await presenceChannel.track({
               user_id: user.id,
@@ -115,6 +111,7 @@ const ChatDialog: React.FC<ChatDialogProps> = ({
       channelRef.current = presenceChannel;
 
       return () => {
+        console.log('Limpando canais...');
         if (typingTimeoutRef.current) {
           clearTimeout(typingTimeoutRef.current);
         }
