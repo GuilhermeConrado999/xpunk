@@ -8,6 +8,7 @@ import AuthPage from "@/components/AuthPage";
 import Index from "./pages/Index";
 import Profile from "./pages/Profile";
 import Communities from "./pages/Communities";
+import Guestbook from "./pages/Guestbook";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +35,7 @@ const AppContent = () => {
           <Route path="/profile" element={<Profile />} />
           <Route path="/profile/:userId" element={<Profile />} />
           <Route path="/communities" element={<Communities />} />
+          <Route path="/guestbook" element={<Guestbook />} />
           <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>

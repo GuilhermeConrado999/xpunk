@@ -65,9 +65,11 @@ const RetroHeader = () => {
                   </Button>
                 </Link>
               </>}
-            <Button variant="ghost" className="btn-retro text-xs">
-              GUESTBOOK
-            </Button>
+            <Link to="/guestbook">
+              <Button variant="ghost" className="btn-retro text-xs">
+                GUESTBOOK
+              </Button>
+            </Link>
           </div>
           
           <div className="flex space-x-2">
