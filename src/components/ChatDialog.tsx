@@ -16,7 +16,7 @@ interface Message {
   read: boolean;
   created_at: string;
   deleted_for?: string[];
-  reply_to?: string;
+  reply_to?: string | null;
 }
 
 interface ChatDialogProps {
@@ -69,7 +69,7 @@ const ChatDialog: React.FC<ChatDialogProps> = ({
               (newMessage.sender_id === user.id && newMessage.receiver_id === friendId) ||
               (newMessage.sender_id === friendId && newMessage.receiver_id === user.id);
             
-            if (isRelevant) {
+            if (isRelevant && !newMessage.deleted_for?.includes(user.id)) {
               setMessages((prev) => {
                 // Evitar duplicatas
                 if (prev.some(m => m.id === newMessage.id)) {
@@ -144,7 +144,32 @@ const ChatDialog: React.FC<ChatDialogProps> = ({
       .order('created_at', { ascending: true });
 
     if (!error && data) {
-      setMessages(data);
+      // Filtrar mensagens que foram deletadas pelo usuário
+      const filteredMessages = data.filter(msg => 
+        !msg.deleted_for?.includes(user.id)
+      );
+      setMessages(filteredMessages);
+    }
+  };
+
+  const deleteMessageForMe = async (messageId: string) => {
+    if (!user) return;
+
+    const message = messages.find(m => m.id === messageId);
+    if (!message) return;
+
+    const deletedFor = message.deleted_for || [];
+    if (!deletedFor.includes(user.id)) {
+      deletedFor.push(user.id);
+    }
+
+    const { error } = await supabase
+      .from('messages')
+      .update({ deleted_for: deletedFor })
+      .eq('id', messageId);
+
+    if (!error) {
+      setMessages(prev => prev.filter(m => m.id !== messageId));
     }
   };
 
@@ -220,32 +245,6 @@ const ChatDialog: React.FC<ChatDialogProps> = ({
     }, 0);
   };
 
-  const deleteMessageForMe = async (messageId: string) => {
-    if (!user) return;
-
-    const message = messages.find(m => m.id === messageId);
-    if (!message) return;
-
-    const deletedFor = message.deleted_for || [];
-    
-    const { error } = await supabase
-      .from('messages')
-      .update({ deleted_for: [...deletedFor, user.id] })
-      .eq('id', messageId);
-
-    if (!error) {
-      setMessages(prev => prev.map(m => 
-        m.id === messageId 
-          ? { ...m, deleted_for: [...(m.deleted_for || []), user.id] }
-          : m
-      ));
-    }
-  };
-
-  const getRepliedMessage = (replyToId: string) => {
-    return messages.find(m => m.id === replyToId);
-  };
-
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
@@ -268,83 +267,63 @@ const ChatDialog: React.FC<ChatDialogProps> = ({
 
         <ScrollArea className="flex-1 p-4" ref={scrollRef}>
           <div className="space-y-4">
-            {messages
-              .filter(msg => !msg.deleted_for?.includes(user?.id || ''))
-              .map((message) => {
-                const isSentByMe = message.sender_id === user?.id;
-                const repliedMessage = message.reply_to ? getRepliedMessage(message.reply_to) : null;
-                
-                return (
+            {messages.map((message) => {
+              const isSentByMe = message.sender_id === user?.id;
+              const repliedMessage = message.reply_to 
+                ? messages.find(m => m.id === message.reply_to)
+                : null;
+              
+              return (
+                <div
+                  key={message.id}
+                  className={`flex ${isSentByMe ? 'justify-end' : 'justify-start'} group`}
+                >
                   <div
-                    key={message.id}
-                    className={`flex ${isSentByMe ? 'justify-end' : 'justify-start'} group`}
+                    className={`max-w-[70%] p-3 rounded-lg relative ${
+                      isSentByMe
+                        ? 'bg-retro-cyan/20 border border-retro-cyan/50'
+                        : 'bg-retro-purple/20 border border-retro-purple/50'
+                    }`}
                   >
-                    <div className="flex items-start gap-2">
-                      {isSentByMe && (
-                        <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 mt-2">
-                          <button
-                            onClick={() => setReplyingTo(message)}
-                            className="p-1 hover:bg-accent rounded"
-                            title="Responder"
-                          >
-                            <Reply className="w-4 h-4 text-muted-foreground" />
-                          </button>
-                          <button
-                            onClick={() => deleteMessageForMe(message.id)}
-                            className="p-1 hover:bg-destructive/20 rounded"
-                            title="Deletar para mim"
-                          >
-                            <X className="w-4 h-4 text-destructive" />
-                          </button>
-                        </div>
-                      )}
-                      
-                      <div
-                        className={`max-w-[70%] p-3 rounded-lg ${
-                          isSentByMe
-                            ? 'bg-retro-cyan/20 border border-retro-cyan/50'
-                            : 'bg-retro-purple/20 border border-retro-purple/50'
-                        }`}
-                      >
-                        {repliedMessage && !repliedMessage.deleted_for?.includes(user?.id || '') && (
-                          <div className="mb-2 pb-2 border-b border-border/50">
-                            <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
-                              <Reply className="w-3 h-3" />
-                              Respondendo a:
-                            </div>
-                            <p className="text-xs text-muted-foreground italic truncate">
-                              {repliedMessage.content}
-                            </p>
-                          </div>
-                        )}
-                        <p className="text-mono text-sm">{message.content}</p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {formatTime(message.created_at)}
+                    {repliedMessage && (
+                      <div className="mb-2 p-2 rounded bg-background/30 border-l-2 border-retro-cyan">
+                        <p className="text-xs text-muted-foreground">
+                          Respondendo a:
+                        </p>
+                        <p className="text-xs text-mono opacity-70 truncate">
+                          {repliedMessage.content}
                         </p>
                       </div>
+                    )}
+                    
+                    <p className="text-mono text-sm">{message.content}</p>
+                    
+                    <div className="flex items-center justify-between gap-2 mt-1">
+                      <p className="text-xs text-muted-foreground">
+                        {formatTime(message.created_at)}
+                      </p>
                       
-                      {!isSentByMe && (
-                        <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 mt-2">
-                          <button
-                            onClick={() => setReplyingTo(message)}
-                            className="p-1 hover:bg-accent rounded"
-                            title="Responder"
-                          >
-                            <Reply className="w-4 h-4 text-muted-foreground" />
-                          </button>
-                          <button
-                            onClick={() => deleteMessageForMe(message.id)}
-                            className="p-1 hover:bg-destructive/20 rounded"
-                            title="Deletar para mim"
-                          >
-                            <X className="w-4 h-4 text-destructive" />
-                          </button>
-                        </div>
-                      )}
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => setReplyingTo(message)}
+                          className="p-1 hover:bg-retro-cyan/30 rounded transition-colors"
+                          title="Responder"
+                        >
+                          <Reply className="w-3 h-3" />
+                        </button>
+                        <button
+                          onClick={() => deleteMessageForMe(message.id)}
+                          className="p-1 hover:bg-destructive/30 rounded transition-colors"
+                          title="Deletar para mim"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
                     </div>
                   </div>
-                );
-              })}
+                </div>
+              );
+            })}
             {isTyping && (
               <div className="flex justify-start items-center gap-2">
                 <div className="max-w-[70%] p-3 rounded-lg bg-retro-purple/20 border border-retro-purple/50 flex items-center gap-2">
@@ -358,26 +337,23 @@ const ChatDialog: React.FC<ChatDialogProps> = ({
           </div>
         </ScrollArea>
 
-        <div className="p-4 border-t border-border space-y-2">
+        <div className="border-t border-border">
           {replyingTo && (
-            <div className="flex items-center justify-between p-2 bg-accent/50 rounded-lg">
-              <div className="flex items-center gap-2 flex-1 min-w-0">
-                <Reply className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                <div className="min-w-0">
-                  <p className="text-xs text-muted-foreground">Respondendo a:</p>
-                  <p className="text-sm truncate">{replyingTo.content}</p>
-                </div>
+            <div className="p-3 bg-retro-cyan/10 border-b border-retro-cyan/30 flex items-center justify-between">
+              <div className="flex-1">
+                <p className="text-xs text-muted-foreground">Respondendo a:</p>
+                <p className="text-sm text-mono truncate">{replyingTo.content}</p>
               </div>
               <button
                 onClick={() => setReplyingTo(null)}
-                className="p-1 hover:bg-accent rounded flex-shrink-0"
+                className="p-1 hover:bg-retro-cyan/30 rounded transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
           )}
           
-          <div className="flex gap-2">
+          <div className="flex gap-2 p-4">
             <Input
               ref={inputRef}
               placeholder="Digite sua mensagem..."
