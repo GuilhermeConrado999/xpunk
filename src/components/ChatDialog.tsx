@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Loader2, X, Reply } from 'lucide-react';
+import { Loader2, X, Reply, MoreVertical } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 interface Message {
   id: string;
@@ -173,6 +174,34 @@ const ChatDialog: React.FC<ChatDialogProps> = ({
     }
   };
 
+  const deleteAllMessagesForMe = async () => {
+    if (!user) return;
+
+    // Pegar todos os IDs das mensagens atuais
+    const messageIds = messages.map(m => m.id);
+    
+    if (messageIds.length === 0) return;
+
+    // Atualizar cada mensagem para adicionar o user.id no deleted_for
+    for (const messageId of messageIds) {
+      const message = messages.find(m => m.id === messageId);
+      if (!message) continue;
+
+      const deletedFor = message.deleted_for || [];
+      if (!deletedFor.includes(user.id)) {
+        deletedFor.push(user.id);
+      }
+
+      await supabase
+        .from('messages')
+        .update({ deleted_for: deletedFor })
+        .eq('id', messageId);
+    }
+
+    // Limpar todas as mensagens localmente
+    setMessages([]);
+  };
+
   const markMessagesAsRead = async () => {
     if (!user) return;
 
@@ -254,14 +283,36 @@ const ChatDialog: React.FC<ChatDialogProps> = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="retro-box bg-card max-w-2xl h-[600px] flex flex-col">
         <DialogHeader>
-          <DialogTitle className="text-pixel text-retro-cyan flex items-center gap-3">
-            <Avatar className="w-10 h-10">
-              <AvatarImage src={friendAvatar} />
-              <AvatarFallback className="bg-retro-purple text-white">
-                {friendName.charAt(0).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            CHAT COM {friendName.toUpperCase()}
+          <DialogTitle className="text-pixel text-retro-cyan flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Avatar className="w-10 h-10">
+                <AvatarImage src={friendAvatar} />
+                <AvatarFallback className="bg-retro-purple text-white">
+                  {friendName.charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              CHAT COM {friendName.toUpperCase()}
+            </div>
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  className="h-8 w-8 hover:bg-retro-cyan/20"
+                >
+                  <MoreVertical className="h-5 w-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="bg-card border-retro-cyan/50">
+                <DropdownMenuItem 
+                  onClick={deleteAllMessagesForMe}
+                  className="text-destructive hover:bg-destructive/20 cursor-pointer"
+                >
+                  Apagar todas as mensagens
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </DialogTitle>
         </DialogHeader>
 
