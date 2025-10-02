@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Loader2 } from 'lucide-react';
+import { Loader2, X, Reply } from 'lucide-react';
 
 interface Message {
   id: string;
@@ -15,6 +15,8 @@ interface Message {
   content: string;
   read: boolean;
   created_at: string;
+  deleted_for?: string[];
+  reply_to?: string;
 }
 
 interface ChatDialogProps {
@@ -37,6 +39,7 @@ const ChatDialog: React.FC<ChatDialogProps> = ({
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<Message | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -200,11 +203,13 @@ const ChatDialog: React.FC<ChatDialogProps> = ({
       .insert({
         sender_id: user.id,
         receiver_id: friendId,
-        content: newMessage.trim()
+        content: newMessage.trim(),
+        reply_to: replyingTo?.id || null
       });
 
     if (!error) {
       setNewMessage('');
+      setReplyingTo(null);
     }
 
     setLoading(false);
@@ -213,6 +218,32 @@ const ChatDialog: React.FC<ChatDialogProps> = ({
     setTimeout(() => {
       inputRef.current?.focus();
     }, 0);
+  };
+
+  const deleteMessageForMe = async (messageId: string) => {
+    if (!user) return;
+
+    const message = messages.find(m => m.id === messageId);
+    if (!message) return;
+
+    const deletedFor = message.deleted_for || [];
+    
+    const { error } = await supabase
+      .from('messages')
+      .update({ deleted_for: [...deletedFor, user.id] })
+      .eq('id', messageId);
+
+    if (!error) {
+      setMessages(prev => prev.map(m => 
+        m.id === messageId 
+          ? { ...m, deleted_for: [...(m.deleted_for || []), user.id] }
+          : m
+      ));
+    }
+  };
+
+  const getRepliedMessage = (replyToId: string) => {
+    return messages.find(m => m.id === replyToId);
   };
 
   const formatTime = (dateString: string) => {
@@ -237,28 +268,83 @@ const ChatDialog: React.FC<ChatDialogProps> = ({
 
         <ScrollArea className="flex-1 p-4" ref={scrollRef}>
           <div className="space-y-4">
-            {messages.map((message) => {
-              const isSentByMe = message.sender_id === user?.id;
-              return (
-                <div
-                  key={message.id}
-                  className={`flex ${isSentByMe ? 'justify-end' : 'justify-start'}`}
-                >
+            {messages
+              .filter(msg => !msg.deleted_for?.includes(user?.id || ''))
+              .map((message) => {
+                const isSentByMe = message.sender_id === user?.id;
+                const repliedMessage = message.reply_to ? getRepliedMessage(message.reply_to) : null;
+                
+                return (
                   <div
-                    className={`max-w-[70%] p-3 rounded-lg ${
-                      isSentByMe
-                        ? 'bg-retro-cyan/20 border border-retro-cyan/50'
-                        : 'bg-retro-purple/20 border border-retro-purple/50'
-                    }`}
+                    key={message.id}
+                    className={`flex ${isSentByMe ? 'justify-end' : 'justify-start'} group`}
                   >
-                    <p className="text-mono text-sm">{message.content}</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {formatTime(message.created_at)}
-                    </p>
+                    <div className="flex items-start gap-2">
+                      {isSentByMe && (
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 mt-2">
+                          <button
+                            onClick={() => setReplyingTo(message)}
+                            className="p-1 hover:bg-accent rounded"
+                            title="Responder"
+                          >
+                            <Reply className="w-4 h-4 text-muted-foreground" />
+                          </button>
+                          <button
+                            onClick={() => deleteMessageForMe(message.id)}
+                            className="p-1 hover:bg-destructive/20 rounded"
+                            title="Deletar para mim"
+                          >
+                            <X className="w-4 h-4 text-destructive" />
+                          </button>
+                        </div>
+                      )}
+                      
+                      <div
+                        className={`max-w-[70%] p-3 rounded-lg ${
+                          isSentByMe
+                            ? 'bg-retro-cyan/20 border border-retro-cyan/50'
+                            : 'bg-retro-purple/20 border border-retro-purple/50'
+                        }`}
+                      >
+                        {repliedMessage && !repliedMessage.deleted_for?.includes(user?.id || '') && (
+                          <div className="mb-2 pb-2 border-b border-border/50">
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
+                              <Reply className="w-3 h-3" />
+                              Respondendo a:
+                            </div>
+                            <p className="text-xs text-muted-foreground italic truncate">
+                              {repliedMessage.content}
+                            </p>
+                          </div>
+                        )}
+                        <p className="text-mono text-sm">{message.content}</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {formatTime(message.created_at)}
+                        </p>
+                      </div>
+                      
+                      {!isSentByMe && (
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 mt-2">
+                          <button
+                            onClick={() => setReplyingTo(message)}
+                            className="p-1 hover:bg-accent rounded"
+                            title="Responder"
+                          >
+                            <Reply className="w-4 h-4 text-muted-foreground" />
+                          </button>
+                          <button
+                            onClick={() => deleteMessageForMe(message.id)}
+                            className="p-1 hover:bg-destructive/20 rounded"
+                            title="Deletar para mim"
+                          >
+                            <X className="w-4 h-4 text-destructive" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
             {isTyping && (
               <div className="flex justify-start items-center gap-2">
                 <div className="max-w-[70%] p-3 rounded-lg bg-retro-purple/20 border border-retro-purple/50 flex items-center gap-2">
@@ -272,27 +358,47 @@ const ChatDialog: React.FC<ChatDialogProps> = ({
           </div>
         </ScrollArea>
 
-        <div className="flex gap-2 p-4 border-t border-border">
-          <Input
-            ref={inputRef}
-            placeholder="Digite sua mensagem..."
-            value={newMessage}
-            onChange={(e) => {
-              setNewMessage(e.target.value);
-              handleTyping();
-            }}
-            onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-            className="input-retro"
-            disabled={loading}
-            autoFocus
-          />
-          <Button
-            onClick={sendMessage}
-            className="btn-retro"
-            disabled={loading || !newMessage.trim()}
-          >
-            ENVIAR
-          </Button>
+        <div className="p-4 border-t border-border space-y-2">
+          {replyingTo && (
+            <div className="flex items-center justify-between p-2 bg-accent/50 rounded-lg">
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <Reply className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-foreground">Respondendo a:</p>
+                  <p className="text-sm truncate">{replyingTo.content}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setReplyingTo(null)}
+                className="p-1 hover:bg-accent rounded flex-shrink-0"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+          
+          <div className="flex gap-2">
+            <Input
+              ref={inputRef}
+              placeholder="Digite sua mensagem..."
+              value={newMessage}
+              onChange={(e) => {
+                setNewMessage(e.target.value);
+                handleTyping();
+              }}
+              onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+              className="input-retro"
+              disabled={loading}
+              autoFocus
+            />
+            <Button
+              onClick={sendMessage}
+              className="btn-retro"
+              disabled={loading || !newMessage.trim()}
+            >
+              ENVIAR
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

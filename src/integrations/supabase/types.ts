@@ -80,28 +80,42 @@ export type Database = {
         Row: {
           content: string
           created_at: string
+          deleted_for: string[] | null
           id: string
           read: boolean
           receiver_id: string
+          reply_to: string | null
           sender_id: string
         }
         Insert: {
           content: string
           created_at?: string
+          deleted_for?: string[] | null
           id?: string
           read?: boolean
           receiver_id: string
+          reply_to?: string | null
           sender_id: string
         }
         Update: {
           content?: string
           created_at?: string
+          deleted_for?: string[] | null
           id?: string
           read?: boolean
           receiver_id?: string
+          reply_to?: string | null
           sender_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "messages_reply_to_fkey"
+            columns: ["reply_to"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
