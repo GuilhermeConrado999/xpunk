@@ -13,7 +13,7 @@ const Index = () => {
         <section className="retro-box p-6 mb-6 bg-card scanlines relative overflow-hidden">
           <div className="flex items-center justify-between">
             <div className="flex-1 space-y-4">
-              <h1 className="text-pixel text-2xl lg:text-3xl glow-text">
+              <h1 className="text-pixel text-2xl lg:text-3xl glow-text text-retro-purple">
                 XPUNK
               </h1>
               <p className="text-mono text-sm lg:text-base text-muted-foreground max-w-2xl">Bem-vindo ao XPUNK — um lugar para comunidades que compartilham a paixão por videogames, mods e aquelas cenas underground que marcaram uma geração de pessoas e ainda não tem seu lugar guardadinho! Faça upload, junte-se a uma comunidade e compartilhe suas recordações pixeladas.</p>
