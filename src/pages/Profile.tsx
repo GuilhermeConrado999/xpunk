@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { useParams } from 'react-router-dom';
@@ -698,31 +698,20 @@ const Profile = () => {
           </Card>
         )}
 
-        {/* Profile Tabs */}
-        <Tabs defaultValue="videos" className="space-y-6">
-          <TabsList className={`grid ${isOwnProfile ? 'grid-cols-5' : 'grid-cols-4'} bg-card retro-box`}>
-            <TabsTrigger value="videos" className="text-terminal">
-              {isOwnProfile ? 'MEUS VÍDEOS' : 'VÍDEOS'}
-            </TabsTrigger>
-            <TabsTrigger value="stats" className="text-terminal">ESTATÍSTICAS</TabsTrigger>
-            <TabsTrigger value="achievements" className="text-terminal">CONQUISTAS</TabsTrigger>
-            <TabsTrigger value="activity" className="text-terminal">ATIVIDADE</TabsTrigger>
-            {isOwnProfile && (
-              <TabsTrigger value="friends" className="text-terminal">AMIGOS</TabsTrigger>
-            )}
-          </TabsList>
-
-          {/* Videos Tab */}
-          <TabsContent value="videos">
+        {/* Profile Content in Columns */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column - Main Content */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Videos Section */}
             <Card className="retro-box bg-card">
               <CardHeader>
                 <CardTitle className="text-pixel text-retro-cyan">
-                  MEUS VÍDEOS ({userVideos.length})
+                  {isOwnProfile ? 'MEUS VÍDEOS' : 'VÍDEOS'} ({userVideos.length})
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 {userVideos.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {userVideos.map((video) => (
                       <VideoCardReal key={video.id} video={video} />
                     ))}
@@ -732,58 +721,15 @@ const Profile = () => {
                     <p className="text-mono text-muted-foreground">
                       Nenhum vídeo foi feito o upload ainda...
                     </p>
-                    <Button className="btn-retro mt-4">FAZER PRIMEIRO UPLOAD</Button>
+                    {isOwnProfile && (
+                      <Button className="btn-retro mt-4">FAZER PRIMEIRO UPLOAD</Button>
+                    )}
                   </div>
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
 
-          {/* Stats Tab */}
-          <TabsContent value="stats">
-            {userStats && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card className="retro-box bg-card text-center">
-                  <CardContent className="p-6">
-                    <div className="text-3xl text-pixel text-retro-cyan mb-2">
-                      {userStats.totalVideos}
-                    </div>
-                    <div className="text-terminal text-sm">VÍDEOS PUBLICADOS</div>
-                  </CardContent>
-                </Card>
-                
-                <Card className="retro-box bg-card text-center">
-                  <CardContent className="p-6">
-                    <div className="text-3xl text-pixel text-retro-pink mb-2">
-                      {userStats.totalViews.toLocaleString()}
-                    </div>
-                    <div className="text-terminal text-sm">VISUALIZAÇÕES TOTAIS</div>
-                  </CardContent>
-                </Card>
-                
-                <Card className="retro-box bg-card text-center">
-                  <CardContent className="p-6">
-                    <div className="text-3xl text-pixel text-retro-purple mb-2">
-                      {userStats.avgRating.toFixed(1)}⭐
-                    </div>
-                    <div className="text-terminal text-sm">RATING MÉDIO</div>
-                  </CardContent>
-                </Card>
-                
-                <Card className="retro-box bg-card text-center">
-                  <CardContent className="p-6">
-                    <div className="text-3xl text-pixel text-retro-cyan mb-2">
-                      {userStats.level}
-                    </div>
-                    <div className="text-terminal text-sm">NÍVEL ATUAL</div>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-          </TabsContent>
-
-          {/* Achievements Tab */}
-          <TabsContent value="achievements">
+            {/* Achievements Section */}
             <Card className="retro-box bg-card">
               <CardHeader>
                 <CardTitle className="text-pixel text-retro-cyan">CONQUISTAS</CardTitle>
@@ -832,10 +778,54 @@ const Profile = () => {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
+          </div>
 
-          {/* Activity Tab */}
-          <TabsContent value="activity">
+          {/* Right Column - Stats and Activity */}
+          <div className="space-y-6">
+            {/* Stats Section */}
+            {userStats && (
+              <div className="space-y-4">
+                <h2 className="text-pixel text-retro-cyan text-xl">ESTATÍSTICAS</h2>
+                
+                <Card className="retro-box bg-card text-center">
+                  <CardContent className="p-6">
+                    <div className="text-3xl text-pixel text-retro-cyan mb-2">
+                      {userStats.totalVideos}
+                    </div>
+                    <div className="text-terminal text-sm">VÍDEOS PUBLICADOS</div>
+                  </CardContent>
+                </Card>
+                
+                <Card className="retro-box bg-card text-center">
+                  <CardContent className="p-6">
+                    <div className="text-3xl text-pixel text-retro-pink mb-2">
+                      {userStats.totalViews.toLocaleString()}
+                    </div>
+                    <div className="text-terminal text-sm">VISUALIZAÇÕES TOTAIS</div>
+                  </CardContent>
+                </Card>
+                
+                <Card className="retro-box bg-card text-center">
+                  <CardContent className="p-6">
+                    <div className="text-3xl text-pixel text-retro-purple mb-2">
+                      {userStats.avgRating.toFixed(1)}⭐
+                    </div>
+                    <div className="text-terminal text-sm">RATING MÉDIO</div>
+                  </CardContent>
+                </Card>
+                
+                <Card className="retro-box bg-card text-center">
+                  <CardContent className="p-6">
+                    <div className="text-3xl text-pixel text-retro-cyan mb-2">
+                      {userStats.level}
+                    </div>
+                    <div className="text-terminal text-sm">NÍVEL ATUAL</div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {/* Activity Section */}
             <Card className="retro-box bg-card">
               <CardHeader>
                 <CardTitle className="text-pixel text-retro-cyan">ATIVIDADE RECENTE</CardTitle>
@@ -850,18 +840,17 @@ const Profile = () => {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
 
-          {/* Friends Tab - Only for own profile */}
-          {isOwnProfile && (
-            <TabsContent value="friends">
+            {/* Friends Section - Only for own profile */}
+            {isOwnProfile && (
               <div className="space-y-6">
+                <h2 className="text-pixel text-retro-cyan text-xl">AMIGOS</h2>
                 <UserSearch />
                 <FriendsList onOpenChat={openChat} />
               </div>
-            </TabsContent>
-          )}
-        </Tabs>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Chat Dialog */}
