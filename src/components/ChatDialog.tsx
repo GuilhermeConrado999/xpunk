@@ -146,9 +146,10 @@ const ChatDialog: React.FC<ChatDialogProps> = ({
 
     if (!error && data) {
       // Filtrar mensagens que foram deletadas pelo usuário
-      const filteredMessages = data.filter(msg => 
-        !msg.deleted_for?.includes(user.id)
-      );
+      const filteredMessages = data.filter(msg => {
+        const deletedFor = msg.deleted_for || [];
+        return !deletedFor.includes(user.id);
+      });
       setMessages(filteredMessages);
     }
   };
@@ -182,24 +183,27 @@ const ChatDialog: React.FC<ChatDialogProps> = ({
     
     if (messageIds.length === 0) return;
 
-    // Atualizar cada mensagem para adicionar o user.id no deleted_for
-    const updatePromises = messageIds.map(async (messageId) => {
-      const message = messages.find(m => m.id === messageId);
-      if (!message) return;
-
-      const deletedFor = message.deleted_for || [];
-      if (!deletedFor.includes(user.id)) {
-        deletedFor.push(user.id);
-      }
-
-      return supabase
+    // Atualizar todas as mensagens de uma vez usando RPC ou update direto
+    // Para cada mensagem, adicionar user.id ao array deleted_for se ainda não estiver lá
+    for (const messageId of messageIds) {
+      const { data: currentMessage } = await supabase
         .from('messages')
-        .update({ deleted_for: deletedFor })
-        .eq('id', messageId);
-    });
+        .select('deleted_for')
+        .eq('id', messageId)
+        .single();
 
-    // Aguardar todas as atualizações
-    await Promise.all(updatePromises);
+      if (currentMessage) {
+        const deletedFor = currentMessage.deleted_for || [];
+        if (!deletedFor.includes(user.id)) {
+          deletedFor.push(user.id);
+          
+          await supabase
+            .from('messages')
+            .update({ deleted_for: deletedFor })
+            .eq('id', messageId);
+        }
+      }
+    }
 
     // Limpar todas as mensagens localmente
     setMessages([]);
