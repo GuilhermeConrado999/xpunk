@@ -219,35 +219,35 @@ const FriendsList: React.FC<FriendsListProps> = ({ onOpenChat }) => {
         </CardHeader>
         <CardContent>
           {friends.length > 0 ? (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {friends.map((friend) => (
-                <div key={friend.id} className="flex items-center justify-between p-3 border border-retro-cyan/30 rounded bg-card/50 hover:border-retro-cyan/60 transition-colors">
+                <div key={friend.id} className="p-4 border border-retro-cyan/30 rounded bg-card/50 hover:border-retro-cyan/60 transition-colors">
                   <div 
-                    className="flex items-center gap-3 cursor-pointer flex-1"
+                    className="flex items-center gap-4 cursor-pointer"
                     onClick={() => navigate(`/profile/${friend.friend_id}`)}
                   >
-                    <Avatar className="w-12 h-12">
+                    <Avatar className="w-16 h-16">
                       <AvatarImage src={friend.profiles.avatar_url} />
                       <AvatarFallback className="bg-retro-purple text-white">
                         {friend.profiles.username.charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
-                    <div>
-                      <div className="text-terminal font-semibold">
+                    <div className="flex-1">
+                      <div className="text-terminal font-semibold text-lg">
                         {friend.profiles.display_name || friend.profiles.username}
                       </div>
                       <div className="text-xs text-muted-foreground">
                         @{friend.profiles.username}
                       </div>
                     </div>
-                    <Badge variant="outline" className="ml-auto text-terminal border-retro-cyan">
+                    <Badge variant="outline" className="text-terminal border-retro-cyan">
                       AMIGO
                     </Badge>
                   </div>
-                  <div className="flex gap-2 ml-4">
+                  <div className="flex flex-col sm:flex-row gap-2 mt-4">
                     <Button
                       onClick={() => onOpenChat(friend.friend_id, friend.profiles.display_name || friend.profiles.username)}
-                      className="btn-retro"
+                      className="btn-retro w-full sm:w-auto"
                       size="sm"
                     >
                       MENSAGEM
@@ -255,7 +255,7 @@ const FriendsList: React.FC<FriendsListProps> = ({ onOpenChat }) => {
                     <Button
                       onClick={() => removeFriend(friend.id)}
                       variant="outline"
-                      className="btn-retro"
+                      className="btn-retro w-full sm:w-auto"
                       size="sm"
                     >
                       REMOVER
