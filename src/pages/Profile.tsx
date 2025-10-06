@@ -89,6 +89,19 @@ const Profile = () => {
     }
   }, [profileUserId, user, userId]);
 
+  // Atualizar vídeos quando a página ganhar foco (útil após upload)
+  useEffect(() => {
+    const handleFocus = () => {
+      if (profileUserId && isOwnProfile) {
+        fetchUserVideos();
+        fetchUserStats();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [profileUserId, isOwnProfile]);
+
   const fetchProfile = async () => {
     if (!profileUserId) return;
 
@@ -706,10 +719,23 @@ const Profile = () => {
           <div className="lg:col-span-2 space-y-6">
             {/* Videos Section */}
             <Card className="retro-box bg-card">
-              <CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-pixel text-retro-cyan">
                   {isOwnProfile ? 'MEUS VÍDEOS' : 'VÍDEOS'} ({userVideos.length})
                 </CardTitle>
+                {isOwnProfile && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      fetchUserVideos();
+                      fetchUserStats();
+                    }}
+                    className="text-mono"
+                  >
+                    ↻ ATUALIZAR
+                  </Button>
+                )}
               </CardHeader>
               <CardContent>
                 {userVideos.length > 0 ? (
@@ -724,7 +750,12 @@ const Profile = () => {
                       Nenhum vídeo foi feito o upload ainda...
                     </p>
                     {isOwnProfile && (
-                      <Button className="btn-retro mt-4">FAZER PRIMEIRO UPLOAD</Button>
+                      <Button 
+                        className="btn-retro mt-4"
+                        onClick={() => window.location.href = '/upload'}
+                      >
+                        FAZER PRIMEIRO UPLOAD
+                      </Button>
                     )}
                   </div>
                 )}

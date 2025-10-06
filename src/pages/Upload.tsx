@@ -130,7 +130,7 @@ const Upload = () => {
       if (dbError) throw dbError;
 
       toast.success('Vídeo enviado com sucesso!');
-      navigate('/');
+      navigate('/profile');
     } catch (error: any) {
       console.error('Upload error:', error);
       toast.error('Erro ao fazer upload: ' + error.message);
