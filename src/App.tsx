@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import Profile from "./pages/Profile";
 import Communities from "./pages/Communities";
 import Guestbook from "./pages/Guestbook";
+import Upload from "./pages/Upload";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,6 +37,7 @@ const AppContent = () => {
           <Route path="/profile/:userId" element={<Profile />} />
           <Route path="/communities" element={<Communities />} />
           <Route path="/guestbook" element={<Guestbook />} />
+          <Route path="/upload" element={<Upload />} />
           <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>

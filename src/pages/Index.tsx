@@ -1,9 +1,12 @@
+import { useNavigate } from 'react-router-dom';
 import RetroHeader from '@/components/RetroHeader';
 import CommunitySection from '@/components/CommunitySection';
 import VideoFeedReal from '@/components/VideoFeedReal';
 import SidebarStatsReal from '@/components/SidebarStatsReal';
 import emoGamerHero from '@/assets/emo-gamer-hero.png';
 const Index = () => {
+  const navigate = useNavigate();
+  
   return <div className="min-h-screen bg-background">
       {/* Header */}
       <RetroHeader />
@@ -18,7 +21,7 @@ const Index = () => {
               </h1>
               <p className="text-mono text-sm lg:text-base text-muted-foreground max-w-2xl">Bem-vindo ao XPUNK — um lugar para comunidades que compartilham a paixão por videogames, mods e aquelas cenas underground que marcaram uma geração de pessoas e ainda não tem seu lugar guardadinho! Faça upload, junte-se a uma comunidade e compartilhe suas recordações pixeladas.</p>
               <div className="flex space-x-3">
-                <button className="btn-retro">FAZER UPLOAD</button>
+                <button className="btn-retro" onClick={() => navigate('/upload')}>FAZER UPLOAD</button>
                 <button className="btn-retro">EXPLORAR VÍDEOS</button>
               </div>
             </div>

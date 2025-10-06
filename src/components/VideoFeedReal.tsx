@@ -13,6 +13,8 @@ interface Video {
   views: number;
   duration: string;
   created_at: string;
+  user_id: string;
+  allow_download?: boolean;
   profiles: {
     username: string;
     display_name: string;
@@ -43,7 +45,8 @@ const VideoFeedReal = () => {
           views,
           duration,
           created_at,
-          user_id
+          user_id,
+          allow_download
         `)
         .eq('is_public', true)
         .order('created_at', { ascending: false });

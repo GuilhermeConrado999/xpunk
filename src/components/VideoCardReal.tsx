@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import VideoPlayer from './VideoPlayer';
 
 interface Video {
   id: string;
@@ -12,6 +13,8 @@ interface Video {
   views: number;
   duration: string;
   created_at: string;
+  user_id: string;
+  allow_download?: boolean;
   profiles: {
     username: string;
     display_name: string;
@@ -25,6 +28,7 @@ interface VideoCardRealProps {
 const VideoCardReal = ({ video }: VideoCardRealProps) => {
   const [averageRating, setAverageRating] = useState(0);
   const [ratingCount, setRatingCount] = useState(0);
+  const [playerOpen, setPlayerOpen] = useState(false);
 
   useEffect(() => {
     fetchRating();
@@ -76,22 +80,22 @@ const VideoCardReal = ({ video }: VideoCardRealProps) => {
     );
   };
 
-  const handleClick = async () => {
-    // Incrementar views
-    try {
-      await supabase.rpc('increment_video_views', { 
-        video_id: video.id 
-      });
-    } catch (error) {
-      console.error('Erro ao incrementar views:', error);
-    }
+  const handleClick = () => {
+    setPlayerOpen(true);
   };
 
   return (
-    <div 
-      className="retro-box p-2 hover-glow cursor-pointer transition-all"
-      onClick={handleClick}
-    >
+    <>
+      <VideoPlayer
+        video={video}
+        open={playerOpen}
+        onOpenChange={setPlayerOpen}
+      />
+      
+      <div 
+        className="retro-box p-2 hover-glow cursor-pointer transition-all"
+        onClick={handleClick}
+      >
       {/* Thumbnail with scanlines */}
       <div className="relative scanlines mb-2">
         {video.thumbnail_url ? (
@@ -143,6 +147,7 @@ const VideoCardReal = ({ video }: VideoCardRealProps) => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

@@ -39,6 +39,8 @@ interface Video {
   tags: string[];
   description: string;
   duration: string;
+  user_id: string;
+  allow_download?: boolean;
   profiles: Profile;
 }
 
