@@ -89,6 +89,11 @@ const Profile = () => {
     }
   }, [profileUserId, user, userId]);
 
+  // Resetar estado de edição ao mudar de perfil
+  useEffect(() => {
+    setIsEditing(false);
+  }, [profileUserId, userId]);
+
   // Atualizar vídeos quando a página ganhar foco (útil após upload)
   useEffect(() => {
     const handleFocus = () => {
@@ -525,6 +530,11 @@ const Profile = () => {
                   <div className="text-xs text-mono text-muted-foreground">
                     {userStats.xp}/1000 XP
                   </div>
+                  <Badge 
+                    className="mt-2 bg-gradient-to-r from-retro-pink to-retro-purple border-retro-cyan text-[10px] pixel-border"
+                  >
+                    ⚡ BETA TESTER
+                  </Badge>
                 </div>
               )}
             </div>
