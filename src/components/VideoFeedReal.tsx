@@ -135,7 +135,11 @@ const VideoFeedReal = () => {
       {/* Video Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         {videos.map((video) => (
-          <VideoCardReal key={video.id} video={video} />
+          <VideoCardReal 
+            key={video.id} 
+            video={video}
+            onVideoUpdated={fetchVideos}
+          />
         ))}
       </div>
       

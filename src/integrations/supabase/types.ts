@@ -49,6 +49,71 @@ export type Database = {
           },
         ]
       }
+      communities: {
+        Row: {
+          color: string
+          created_at: string
+          created_by: string
+          description: string | null
+          emoji: string
+          id: string
+          name: string
+          thumbnail_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          emoji?: string
+          id?: string
+          name: string
+          thumbnail_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          emoji?: string
+          id?: string
+          name?: string
+          thumbnail_url?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      community_members: {
+        Row: {
+          community_id: string
+          id: string
+          joined_at: string
+          user_id: string
+        }
+        Insert: {
+          community_id: string
+          id?: string
+          joined_at?: string
+          user_id: string
+        }
+        Update: {
+          community_id?: string
+          id?: string
+          joined_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_members_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "communities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       friendships: {
         Row: {
           created_at: string

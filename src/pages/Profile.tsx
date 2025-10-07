@@ -751,7 +751,14 @@ const Profile = () => {
                 {userVideos.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {userVideos.map((video) => (
-                      <VideoCardReal key={video.id} video={video} />
+                      <VideoCardReal 
+                        key={video.id} 
+                        video={video}
+                        onVideoUpdated={() => {
+                          fetchUserVideos();
+                          fetchUserStats();
+                        }}
+                      />
                     ))}
                   </div>
                 ) : (

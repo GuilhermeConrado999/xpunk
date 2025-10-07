@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 import VideoPlayer from './VideoPlayer';
+import VideoEditDialog from './VideoEditDialog';
+import { Button } from '@/components/ui/button';
+import { Pencil } from 'lucide-react';
 
 interface Video {
   id: string;
@@ -23,12 +27,17 @@ interface Video {
 
 interface VideoCardRealProps {
   video: Video;
+  onVideoUpdated?: () => void;
 }
 
-const VideoCardReal = ({ video }: VideoCardRealProps) => {
+const VideoCardReal = ({ video, onVideoUpdated }: VideoCardRealProps) => {
+  const { user } = useAuth();
   const [averageRating, setAverageRating] = useState(0);
   const [ratingCount, setRatingCount] = useState(0);
   const [playerOpen, setPlayerOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  
+  const isOwner = user && video.user_id === user.id;
 
   useEffect(() => {
     fetchRating();
@@ -80,8 +89,17 @@ const VideoCardReal = ({ video }: VideoCardRealProps) => {
     );
   };
 
-  const handleClick = () => {
+  const handleClick = (e: React.MouseEvent) => {
+    // Não abrir player se clicou no botão de editar
+    if ((e.target as HTMLElement).closest('.edit-button')) {
+      return;
+    }
     setPlayerOpen(true);
+  };
+
+  const handleEditClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditDialogOpen(true);
   };
 
   return (
@@ -91,13 +109,40 @@ const VideoCardReal = ({ video }: VideoCardRealProps) => {
         open={playerOpen}
         onOpenChange={setPlayerOpen}
       />
+
+      {isOwner && (
+        <VideoEditDialog
+          videoId={video.id}
+          currentTitle={video.title}
+          currentDescription={video.description}
+          currentCommunity={video.community}
+          currentTags={video.tags || []}
+          currentThumbnailUrl={video.thumbnail_url}
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          onVideoUpdated={onVideoUpdated || (() => {})}
+        />
+      )}
       
       <div 
-        className="retro-box p-2 hover-glow cursor-pointer transition-all"
+        className="retro-box p-2 hover-glow cursor-pointer transition-all relative group"
         onClick={handleClick}
       >
       {/* Thumbnail with scanlines */}
       <div className="relative scanlines mb-2">
+        {/* Edit button (só aparece para o dono) */}
+        {isOwner && (
+          <Button
+            onClick={handleEditClick}
+            size="sm"
+            variant="secondary"
+            className="edit-button absolute top-1 right-1 z-10 opacity-0 group-hover:opacity-100 transition-opacity text-[10px] h-6 px-2"
+          >
+            <Pencil className="w-3 h-3 mr-1" />
+            EDITAR
+          </Button>
+        )}
+
         {video.thumbnail_url ? (
           <img 
             src={video.thumbnail_url} 
