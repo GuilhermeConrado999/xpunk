@@ -56,9 +56,18 @@ const VideoPlayer = ({ video, open, onOpenChange }: VideoPlayerProps) => {
   useEffect(() => {
     if (video && open) {
       fetchVideoData();
-      incrementViews();
     }
   }, [video, open]);
+
+  // Separate effect for incrementing views only once when video opens
+  useEffect(() => {
+    let viewIncremented = false;
+    
+    if (video && open && !viewIncremented) {
+      incrementViews();
+      viewIncremented = true;
+    }
+  }, [video?.id, open]);
 
   const fetchVideoData = async () => {
     if (!video) return;

@@ -8,6 +8,7 @@ import AuthPage from "@/components/AuthPage";
 import Index from "./pages/Index";
 import Profile from "./pages/Profile";
 import Communities from "./pages/Communities";
+import CommunityView from "./pages/CommunityView";
 import Guestbook from "./pages/Guestbook";
 import Upload from "./pages/Upload";
 import NotFound from "./pages/NotFound";
@@ -36,6 +37,7 @@ const AppContent = () => {
           <Route path="/profile" element={<Profile />} />
           <Route path="/profile/:userId" element={<Profile />} />
           <Route path="/communities" element={<Communities />} />
+          <Route path="/community/:id" element={<CommunityView />} />
           <Route path="/guestbook" element={<Guestbook />} />
           <Route path="/upload" element={<Upload />} />
           <Route path="*" element={<NotFound />} />
