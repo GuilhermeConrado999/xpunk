@@ -51,9 +51,11 @@ const RetroHeader = () => {
               </Button>
             </Link>
             {user && <>
-                <Button variant="ghost" className="btn-retro text-xs">
-                  UPLOAD
-                </Button>
+                <Link to="/upload">
+                  <Button variant="ghost" className="btn-retro text-xs">
+                    UPLOAD
+                  </Button>
+                </Link>
                 <Link to="/communities">
                   <Button variant="ghost" className="btn-retro text-xs">
                     COMUNIDADES

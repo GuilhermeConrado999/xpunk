@@ -4,7 +4,8 @@ import RetroHeader from '@/components/RetroHeader';
 import VideoCardReal from '@/components/VideoCardReal';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Users, Video, ArrowLeft, UserPlus, UserMinus } from 'lucide-react';
+import { Users, Video, ArrowLeft, UserPlus, UserMinus, Settings } from 'lucide-react';
+import CommunityEditDialog from '@/components/CommunityEditDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -15,6 +16,7 @@ interface Community {
   description: string | null;
   emoji: string;
   color: string;
+  thumbnail_url: string | null;
   created_by: string;
   member_count?: number;
   video_count?: number;
@@ -47,6 +49,7 @@ const CommunityView = () => {
   const [community, setCommunity] = useState<Community | null>(null);
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchCommunityData();
@@ -230,13 +233,25 @@ const CommunityView = () => {
 
         {/* Community Header */}
         <div className="retro-box bg-card/80 backdrop-blur-sm p-8 mb-8">
-          <div 
-            className="h-32 flex items-center justify-center relative mb-6 rounded-lg"
-            style={{ background: `linear-gradient(135deg, ${community.color}33, ${community.color}66)` }}
-          >
-            <div className="absolute inset-0 scanlines opacity-20"></div>
-            <span className="text-8xl z-10">{community.emoji}</span>
-          </div>
+          {community.thumbnail_url ? (
+            <div className="relative h-48 mb-6 rounded-lg overflow-hidden">
+              <img 
+                src={community.thumbnail_url} 
+                alt={community.name}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent"></div>
+              <span className="absolute bottom-4 left-4 text-6xl z-10">{community.emoji}</span>
+            </div>
+          ) : (
+            <div 
+              className="h-32 flex items-center justify-center relative mb-6 rounded-lg"
+              style={{ background: `linear-gradient(135deg, ${community.color}33, ${community.color}66)` }}
+            >
+              <div className="absolute inset-0 scanlines opacity-20"></div>
+              <span className="text-8xl z-10">{community.emoji}</span>
+            </div>
+          )}
 
           <div className="flex items-start justify-between">
             <div className="flex-1">
@@ -259,7 +274,18 @@ const CommunityView = () => {
               </div>
             </div>
 
-            <div>
+            <div className="flex gap-2">
+              {user && user.id === community.created_by && (
+                <Button
+                  onClick={() => setEditDialogOpen(true)}
+                  variant="outline"
+                  className="btn-retro"
+                >
+                  <Settings className="w-4 h-4 mr-2" />
+                  EDITAR
+                </Button>
+              )}
+              
               {community.is_member ? (
                 <Button
                   onClick={handleLeaveCommunity}
@@ -307,6 +333,14 @@ const CommunityView = () => {
           )}
         </div>
       </main>
+
+      {/* Edit Dialog */}
+      <CommunityEditDialog
+        community={community}
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        onCommunityUpdated={fetchCommunityData}
+      />
     </div>
   );
 };

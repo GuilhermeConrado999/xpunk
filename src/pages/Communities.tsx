@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Users, Plus, Video, Eye, TrendingUp, Trash2, UserPlus, UserMinus } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -26,6 +27,7 @@ interface Community {
 const Communities = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [communities, setCommunities] = useState<Community[]>([]);
   const [loading, setLoading] = useState(true);
@@ -438,36 +440,47 @@ const Communities = () => {
                     )}
                   </div>
                   
-                  <div className="flex gap-2">
-                    {community.is_member ? (
-                      <Button 
-                        onClick={() => handleLeaveCommunity(community.id)}
-                        variant="outline"
-                        className="flex-1 btn-retro text-xs"
-                      >
-                        <UserMinus className="w-3 h-3 mr-1" />
-                        SAIR
-                      </Button>
-                    ) : (
-                      <Button 
-                        onClick={() => handleJoinCommunity(community.id)}
-                        className="flex-1 btn-retro text-xs"
-                      >
-                        <UserPlus className="w-3 h-3 mr-1" />
-                        ENTRAR
-                      </Button>
-                    )}
+                  <div className="flex flex-col gap-2">
+                    <Button 
+                      onClick={() => navigate(`/community/${community.id}`)}
+                      variant="outline"
+                      className="w-full btn-retro text-xs"
+                    >
+                      <Eye className="w-3 h-3 mr-1" />
+                      VER COMUNIDADE
+                    </Button>
                     
-                    {user && user.id === community.created_by && (
-                      <Button
-                        onClick={() => handleDeleteCommunity(community.id, community.created_by)}
-                        variant="destructive"
-                        size="sm"
-                        className="text-xs"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
-                    )}
+                    <div className="flex gap-2">
+                      {community.is_member ? (
+                        <Button 
+                          onClick={() => handleLeaveCommunity(community.id)}
+                          variant="outline"
+                          className="flex-1 btn-retro text-xs"
+                        >
+                          <UserMinus className="w-3 h-3 mr-1" />
+                          SAIR
+                        </Button>
+                      ) : (
+                        <Button 
+                          onClick={() => handleJoinCommunity(community.id)}
+                          className="flex-1 btn-retro text-xs"
+                        >
+                          <UserPlus className="w-3 h-3 mr-1" />
+                          ENTRAR
+                        </Button>
+                      )}
+                      
+                      {user && user.id === community.created_by && (
+                        <Button
+                          onClick={() => handleDeleteCommunity(community.id, community.created_by)}
+                          variant="destructive"
+                          size="sm"
+                          className="text-xs"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>

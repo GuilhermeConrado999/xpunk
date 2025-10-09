@@ -147,11 +147,11 @@ const VideoCardReal = ({ video, onVideoUpdated }: VideoCardRealProps) => {
           <img 
             src={video.thumbnail_url} 
             alt={video.title}
-            className="w-full h-32 object-cover pixel-border"
+            className="w-full aspect-video object-cover pixel-border"
             style={{ imageRendering: 'pixelated' }}
           />
         ) : (
-          <div className="w-full h-32 bg-muted pixel-border flex items-center justify-center">
+          <div className="w-full aspect-video bg-muted pixel-border flex items-center justify-center">
             <span className="text-terminal text-xs">NO THUMBNAIL</span>
           </div>
         )}
