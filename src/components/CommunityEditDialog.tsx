@@ -84,27 +84,30 @@ const CommunityEditDialog = ({ community, open, onOpenChange, onCommunityUpdated
 
       // Upload new thumbnail if selected
       if (thumbnailFile) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("Usuário não autenticado");
+
         const fileExt = thumbnailFile.name.split('.').pop();
-        const fileName = `${community.id}-${Date.now()}.${fileExt}`;
+        const filePath = `${user.id}/communities/${community.id}-${Date.now()}.${fileExt}`;
 
         // Delete old thumbnail if exists
         if (community.thumbnail_url) {
-          const oldPath = community.thumbnail_url.split('/').pop();
+          const oldPath = community.thumbnail_url.split('/thumbnails/')[1];
           if (oldPath) {
-            await supabase.storage.from('thumbnails').remove([`communities/${oldPath}`]);
+            await supabase.storage.from('thumbnails').remove([oldPath]);
           }
         }
 
-        // Upload new thumbnail
+        // Upload new thumbnail (user-scoped path to satisfy RLS)
         const { error: uploadError } = await supabase.storage
           .from('thumbnails')
-          .upload(`communities/${fileName}`, thumbnailFile);
+          .upload(filePath, thumbnailFile);
 
         if (uploadError) throw uploadError;
 
         const { data: { publicUrl } } = supabase.storage
           .from('thumbnails')
-          .getPublicUrl(`communities/${fileName}`);
+          .getPublicUrl(filePath);
 
         thumbnailUrl = publicUrl;
       }
