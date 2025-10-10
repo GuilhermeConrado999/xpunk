@@ -234,11 +234,11 @@ const CommunityView = () => {
         {/* Community Header */}
         <div className="p-8 mb-8">
           {community.thumbnail_url ? (
-            <div className="relative h-48 mb-6 rounded-lg overflow-hidden">
+            <div className="relative h-64 md:h-72 lg:h-80 mb-6 rounded-lg overflow-hidden">
               <img 
                 src={community.thumbnail_url} 
                 alt={community.name}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover relative z-0 brightness-100"
               />
               <span className="absolute bottom-4 left-4 text-6xl z-10">{community.emoji}</span>
             </div>
