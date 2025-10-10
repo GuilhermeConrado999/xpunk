@@ -238,12 +238,14 @@ const VideoPlayer = ({ video, open, onOpenChange }: VideoPlayerProps) => {
           {/* Video Player */}
           <div className="lg:col-span-2 space-y-4">
             <div className="retro-box bg-background scanlines">
-              <video
-                src={video.video_url}
-                controls
-                className="w-full pixel-border"
-                poster={video.thumbnail_url || undefined}
-              />
+              <div className="relative aspect-video">
+                <video
+                  src={video.video_url}
+                  controls
+                  className="absolute inset-0 w-full h-full object-contain pixel-border bg-black"
+                  poster={video.thumbnail_url || undefined}
+                />
+              </div>
             </div>
 
             {/* Video Info */}
