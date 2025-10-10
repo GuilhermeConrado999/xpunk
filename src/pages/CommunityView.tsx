@@ -238,7 +238,7 @@ const CommunityView = () => {
               <img 
                 src={community.thumbnail_url} 
                 alt={community.name}
-                className="w-full h-full object-contain relative z-0 brightness-100 bg-transparent"
+                className="w-full h-full object-fill relative z-0 brightness-100 bg-transparent"
               />
               <span className="absolute bottom-4 left-4 text-6xl z-10">{community.emoji}</span>
             </div>
