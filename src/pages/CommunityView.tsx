@@ -232,7 +232,7 @@ const CommunityView = () => {
         </Button>
 
         {/* Community Header */}
-        <div className="retro-box bg-card/80 backdrop-blur-sm p-8 mb-8">
+        <div className="p-8 mb-8">
           {community.thumbnail_url ? (
             <div className="relative h-48 mb-6 rounded-lg overflow-hidden">
               <img 
@@ -240,7 +240,6 @@ const CommunityView = () => {
                 alt={community.name}
                 className="w-full h-full object-cover"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent"></div>
               <span className="absolute bottom-4 left-4 text-6xl z-10">{community.emoji}</span>
             </div>
           ) : (
