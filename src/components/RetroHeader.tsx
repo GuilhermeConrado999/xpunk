@@ -22,7 +22,7 @@ const RetroHeader = () => {
       <div className="bg-card p-4 scanlines">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <img src={retroLogoBanner} alt="RetroGameShare Logo" className="h-12 pixel-border" />
+            <img src={retroLogoBanner} alt="RetroGameShare Logo" className="h-12" />
             <div className="text-terminal">
               <div className="text-lg glow-text">XPUNK</div>
               <div className="text-xs text-muted-foreground">Venha conhecer algo novo!</div>
