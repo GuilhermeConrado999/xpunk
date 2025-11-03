@@ -12,6 +12,7 @@ const AuthPage = ({
   onAuthSuccess
 }: AuthPageProps) => {
   const [isLogin, setIsLogin] = useState(true);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
@@ -56,6 +57,34 @@ const AuthPage = ({
           description: "Verifique seu email para confirmar a conta"
         });
       }
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePasswordReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/`,
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Email enviado!",
+        description: "Verifique sua caixa de entrada para redefinir sua senha"
+      });
+      
+      setIsForgotPassword(false);
+      setEmail('');
     } catch (error: any) {
       toast({
         title: "Erro",
@@ -137,11 +166,59 @@ const AuthPage = ({
             </div>
           </div>
           <p className="text-mono text-sm text-muted-foreground bg-retro-dark/50 px-4 py-2 rounded border border-retro-cyan/30">
-            {isLogin ? '> INICIANDO SESSÃO...' : '> REGISTRANDO NOVO USER...'}
+            {isForgotPassword ? '> RECUPERANDO SENHA...' : isLogin ? '> INICIANDO SESSÃO...' : '> REGISTRANDO NOVO USER...'}
           </p>
         </div>
 
-        <form onSubmit={handleAuth} className="space-y-6">
+        {isForgotPassword ? (
+          /* Password Recovery Form */
+          <form onSubmit={handlePasswordReset} className="space-y-6">
+            <div className="space-y-4">
+              <div className="group">
+                <Label htmlFor="email" className="text-terminal text-sm text-retro-cyan flex items-center gap-2">
+                  <span className="text-retro-pink">{'>'}</span> EMAIL:
+                </Label>
+                <Input 
+                  id="email" 
+                  type="email" 
+                  value={email} 
+                  onChange={e => setEmail(e.target.value)} 
+                  required 
+                  placeholder="user@cyberpunk.net" 
+                  className="text-mono bg-retro-dark/50 border-retro-cyan/30 focus:border-retro-pink focus:ring-retro-pink/20 transition-all duration-300 bg-zinc-950" 
+                />
+              </div>
+              <p className="text-xs text-muted-foreground text-mono">
+                Digite seu email para receber as instruções de recuperação de senha
+              </p>
+            </div>
+
+            <Button 
+              type="submit" 
+              disabled={loading} 
+              className="w-full btn-retro text-lg py-3 bg-gradient-to-r from-retro-pink to-retro-cyan hover:from-retro-cyan hover:to-retro-pink transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span className="text-pixel">
+                {loading ? '⌛ ENVIANDO...' : '📧 ENVIAR EMAIL DE RECUPERAÇÃO'}
+              </span>
+            </Button>
+
+            <button 
+              type="button"
+              onClick={() => {
+                setIsForgotPassword(false);
+                setEmail('');
+              }} 
+              className="w-full text-terminal text-sm hover-retro transition-all duration-300 px-4 py-2 border border-retro-cyan/30 rounded hover:border-retro-pink hover:bg-retro-pink/10"
+            >
+              <span className="text-retro-cyan">
+                ← Voltar para o login
+              </span>
+            </button>
+          </form>
+        ) : (
+          /* Login/Register Form */
+          <form onSubmit={handleAuth} className="space-y-6">
           <div className="space-y-4">
             <div className="group">
               <Label htmlFor="email" className="text-terminal text-sm text-retro-cyan flex items-center gap-2">
@@ -170,17 +247,31 @@ const AuthPage = ({
               {loading ? '⌛ PROCESSANDO...' : isLogin ? '🚀 ENTRAR NO XPUNK' : '✨ CRIAR CONTA'}
             </span>
           </Button>
-        </form>
 
-        {/* Toggle Login/Register */}
-        <div className="mt-8 text-center">
-          <div className="h-px bg-gradient-to-r from-transparent via-retro-cyan/50 to-transparent mb-4"></div>
-          <button onClick={() => setIsLogin(!isLogin)} className="text-terminal text-sm hover-retro transition-all duration-300 px-4 py-2 border border-retro-cyan/30 rounded hover:border-retro-pink hover:bg-retro-pink/10">
-            <span className="text-retro-cyan">
-              {isLogin ? '📝 Não tem conta? Cadastre-se aqui' : '🔑 Já tem conta? Faça login'}
-            </span>
-          </button>
-        </div>
+          {/* Forgot Password Link - Only show on login */}
+          {isLogin && (
+            <button 
+              type="button"
+              onClick={() => setIsForgotPassword(true)} 
+              className="w-full text-terminal text-xs hover-retro transition-all duration-300 text-retro-cyan hover:text-retro-pink"
+            >
+              🔐 Esqueceu sua senha?
+            </button>
+          )}
+        </form>
+        )}
+
+        {/* Toggle Login/Register - Only show when not in forgot password mode */}
+        {!isForgotPassword && (
+          <div className="mt-8 text-center">
+            <div className="h-px bg-gradient-to-r from-transparent via-retro-cyan/50 to-transparent mb-4"></div>
+            <button onClick={() => setIsLogin(!isLogin)} className="text-terminal text-sm hover-retro transition-all duration-300 px-4 py-2 border border-retro-cyan/30 rounded hover:border-retro-pink hover:bg-retro-pink/10">
+              <span className="text-retro-cyan">
+                {isLogin ? '📝 Não tem conta? Cadastre-se aqui' : '🔑 Já tem conta? Faça login'}
+              </span>
+            </button>
+          </div>
+        )}
 
         {/* Footer */}
         <div className="mt-8 text-center border-t border-retro-cyan/20 pt-4">
