@@ -4,8 +4,7 @@ import { Link } from 'react-router-dom';
 import retroLogoBanner from '@/assets/retro-logo-banner.png';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { Bell } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { NotificationsPopover } from './NotificationsPopover';
 const RetroHeader = () => {
   const {
     user,
@@ -23,27 +22,29 @@ const RetroHeader = () => {
   }, []);
 
   // Fetch and listen to notifications
-  useEffect(() => {
+  const fetchNotifications = async () => {
     if (!user) return;
 
-    const fetchNotifications = async () => {
-      // Count pending friend requests
-      const { data: friendRequests } = await supabase
-        .from('friendships')
-        .select('id')
-        .eq('friend_id', user.id)
-        .eq('status', 'pending');
+    // Count pending friend requests
+    const { data: friendRequests } = await supabase
+      .from('friendships')
+      .select('id')
+      .eq('friend_id', user.id)
+      .eq('status', 'pending');
 
-      // Count unread messages
-      const { data: unreadMessages } = await supabase
-        .from('messages')
-        .select('id')
-        .eq('receiver_id', user.id)
-        .eq('read', false);
+    // Count unread messages
+    const { data: unreadMessages } = await supabase
+      .from('messages')
+      .select('id')
+      .eq('receiver_id', user.id)
+      .eq('read', false);
 
-      const total = (friendRequests?.length || 0) + (unreadMessages?.length || 0);
-      setNotificationCount(total);
-    };
+    const total = (friendRequests?.length || 0) + (unreadMessages?.length || 0);
+    setNotificationCount(total);
+  };
+
+  useEffect(() => {
+    if (!user) return;
 
     fetchNotifications();
 
@@ -137,19 +138,11 @@ const RetroHeader = () => {
                   </Button>
                 </Link>
                 
-                {/* Notifications Button */}
-                <div className="relative ml-2">
-                  <Button variant="ghost" className="btn-retro text-xs relative">
-                    <Bell className="h-4 w-4" />
-                    {notificationCount > 0 && (
-                      <Badge 
-                        className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs bg-destructive text-destructive-foreground"
-                      >
-                        {notificationCount > 9 ? '9+' : notificationCount}
-                      </Badge>
-                    )}
-                  </Button>
-                </div>
+                {/* Notifications Popover */}
+                <NotificationsPopover 
+                  notificationCount={notificationCount}
+                  onNotificationChange={fetchNotifications}
+                />
               </>}
             {!user && (
               <Link to="/guestbook">
