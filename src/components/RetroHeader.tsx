@@ -3,12 +3,16 @@ import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import retroLogoBanner from '@/assets/retro-logo-banner.png';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
+import { Bell } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 const RetroHeader = () => {
   const {
     user,
     signOut
   } = useAuth();
   const [currentTime, setCurrentTime] = useState(new Date().toLocaleString());
+  const [notificationCount, setNotificationCount] = useState(0);
 
   // Update time every second for that authentic 2000s feel
   useEffect(() => {
@@ -17,6 +21,67 @@ const RetroHeader = () => {
     }, 1000);
     return () => clearInterval(timer);
   }, []);
+
+  // Fetch and listen to notifications
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchNotifications = async () => {
+      // Count pending friend requests
+      const { data: friendRequests } = await supabase
+        .from('friendships')
+        .select('id')
+        .eq('friend_id', user.id)
+        .eq('status', 'pending');
+
+      // Count unread messages
+      const { data: unreadMessages } = await supabase
+        .from('messages')
+        .select('id')
+        .eq('receiver_id', user.id)
+        .eq('read', false);
+
+      const total = (friendRequests?.length || 0) + (unreadMessages?.length || 0);
+      setNotificationCount(total);
+    };
+
+    fetchNotifications();
+
+    // Listen to new friend requests
+    const friendshipsChannel = supabase
+      .channel('friendships-notifications')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'friendships',
+          filter: `friend_id=eq.${user.id}`
+        },
+        () => fetchNotifications()
+      )
+      .subscribe();
+
+    // Listen to new messages
+    const messagesChannel = supabase
+      .channel('messages-notifications')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'messages',
+          filter: `receiver_id=eq.${user.id}`
+        },
+        () => fetchNotifications()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(friendshipsChannel);
+      supabase.removeChannel(messagesChannel);
+    };
+  }, [user]);
   return <header className="retro-box border-b-2 border-primary mb-4">
       {/* Top Banner with Logo */}
       <div className="bg-card p-4 scanlines">
@@ -44,7 +109,7 @@ const RetroHeader = () => {
       {/* Navigation Menu */}
       <nav className="bg-secondary p-3 border-t border-border">
         <div className="flex items-center justify-between">
-          <div className="flex space-x-1">
+          <div className="flex space-x-1 items-center">
             <Link to="/">
               <Button variant="ghost" className="btn-retro text-xs">
                 HOME
@@ -66,12 +131,33 @@ const RetroHeader = () => {
                     PERFIL
                   </Button>
                 </Link>
+                <Link to="/guestbook">
+                  <Button variant="ghost" className="btn-retro text-xs">
+                    GUESTBOOK
+                  </Button>
+                </Link>
+                
+                {/* Notifications Button */}
+                <div className="relative ml-2">
+                  <Button variant="ghost" className="btn-retro text-xs relative">
+                    <Bell className="h-4 w-4" />
+                    {notificationCount > 0 && (
+                      <Badge 
+                        className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs bg-destructive text-destructive-foreground"
+                      >
+                        {notificationCount > 9 ? '9+' : notificationCount}
+                      </Badge>
+                    )}
+                  </Button>
+                </div>
               </>}
-            <Link to="/guestbook">
-              <Button variant="ghost" className="btn-retro text-xs">
-                GUESTBOOK
-              </Button>
-            </Link>
+            {!user && (
+              <Link to="/guestbook">
+                <Button variant="ghost" className="btn-retro text-xs">
+                  GUESTBOOK
+                </Button>
+              </Link>
+            )}
           </div>
           
           <div className="flex space-x-2">
