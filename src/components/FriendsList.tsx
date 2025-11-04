@@ -246,14 +246,20 @@ const FriendsList: React.FC<FriendsListProps> = ({ onOpenChat }) => {
                   </div>
                   <div className="flex flex-col sm:flex-row gap-2 mt-4">
                     <Button
-                      onClick={() => onOpenChat(friend.friend_id, friend.profiles.display_name || friend.profiles.username)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenChat(friend.friend_id, friend.profiles.display_name || friend.profiles.username);
+                      }}
                       className="btn-retro w-full sm:w-auto"
                       size="sm"
                     >
                       MENSAGEM
                     </Button>
                     <Button
-                      onClick={() => removeFriend(friend.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeFriend(friend.id);
+                      }}
                       variant="outline"
                       className="btn-retro w-full sm:w-auto"
                       size="sm"

@@ -28,6 +28,10 @@ interface Profile {
   created_at: string;
 }
 
+interface UserRole {
+  role: string;
+}
+
 interface Video {
   id: string;
   title: string;
@@ -74,6 +78,7 @@ const Profile = () => {
   const [chatFriendName, setChatFriendName] = useState('');
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [uploadingBackground, setUploadingBackground] = useState(false);
+  const [userRoles, setUserRoles] = useState<UserRole[]>([]);
 
   const isOwnProfile = !userId || userId === user?.id;
   const profileUserId = userId || user?.id;
@@ -83,6 +88,7 @@ const Profile = () => {
       fetchProfile();
       fetchUserVideos();
       fetchUserStats();
+      fetchUserRoles();
       if (!isOwnProfile && user) {
         checkFriendshipStatus();
       }
@@ -201,6 +207,19 @@ const Profile = () => {
       level,
       xp: xp % 1000
     });
+  };
+
+  const fetchUserRoles = async () => {
+    if (!profileUserId) return;
+
+    const { data } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', profileUserId);
+
+    if (data) {
+      setUserRoles(data);
+    }
   };
 
   const checkFriendshipStatus = async () => {
@@ -530,11 +549,20 @@ const Profile = () => {
                   <div className="text-xs text-mono text-muted-foreground">
                     {userStats.xp}/1000 XP
                   </div>
-                  <Badge 
-                    className="mt-2 bg-gradient-to-r from-retro-pink to-retro-purple border-retro-cyan text-[10px] pixel-border"
-                  >
-                    ⚡ BETA TESTER
-                  </Badge>
+                  <div className="flex flex-col gap-2 mt-2">
+                    <Badge 
+                      className="bg-gradient-to-r from-retro-pink to-retro-purple border-retro-cyan text-[10px] pixel-border"
+                    >
+                      ⚡ BETA TESTER
+                    </Badge>
+                    {userRoles.some(r => r.role === 'dev') && (
+                      <Badge 
+                        className="bg-gradient-to-r from-retro-cyan to-retro-purple border-retro-cyan text-[10px] pixel-border"
+                      >
+                        💻 DEV
+                      </Badge>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
