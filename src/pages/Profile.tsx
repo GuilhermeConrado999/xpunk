@@ -557,9 +557,10 @@ const Profile = () => {
                     </Badge>
                     {userRoles.some(r => r.role === 'dev') && (
                       <Badge 
-                        className="bg-gradient-to-r from-retro-cyan to-retro-purple border-retro-cyan text-[10px] pixel-border"
+                        variant="dev"
+                        className="text-[11px] uppercase tracking-wider"
                       >
-                        💻 DEV
+                        ⚡ DEV ⚡
                       </Badge>
                     )}
                   </div>
