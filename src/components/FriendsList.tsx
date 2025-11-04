@@ -131,23 +131,30 @@ const FriendsList: React.FC<FriendsListProps> = ({ onOpenChat }) => {
     }
   };
 
-  const removeFriend = async (friendshipId: string) => {
-    const { error } = await supabase
-      .from('friendships')
-      .delete()
-      .eq('id', friendshipId);
+  const removeFriend = async (friendshipId: string, friendUserId: string) => {
+    // Atualização otimista: some imediatamente da UI
+    setFriends((prev) => prev.filter((f) => f.friend_id !== friendUserId));
 
-    if (error) {
+    try {
+      // Remover possíveis registros nas duas direções
+      const { error } = await supabase
+        .from('friendships')
+        .delete()
+        .or(`and(user_id.eq.${user?.id},friend_id.eq.${friendUserId}),and(user_id.eq.${friendUserId},friend_id.eq.${user?.id})`);
+
+      if (error) throw error;
+
+      toast({
+        title: "Sucesso",
+        description: "Amigo removido"
+      });
+    } catch (error) {
       toast({
         title: "Erro",
         description: "Não foi possível remover o amigo",
         variant: "destructive"
       });
-    } else {
-      toast({
-        title: "Sucesso",
-        description: "Amigo removido"
-      });
+      // Recarrega para desfazer a otimização se falhar
       fetchFriends();
     }
   };
@@ -195,7 +202,7 @@ const FriendsList: React.FC<FriendsListProps> = ({ onOpenChat }) => {
                       ACEITAR
                     </Button>
                     <Button
-                      onClick={() => removeFriend(request.id)}
+                      onClick={() => removeFriend(request.id, request.user_id)}
                       variant="outline"
                       className="btn-retro"
                       size="sm"
@@ -258,7 +265,7 @@ const FriendsList: React.FC<FriendsListProps> = ({ onOpenChat }) => {
                     <Button
                       onClick={(e) => {
                         e.stopPropagation();
-                        removeFriend(friend.id);
+                        removeFriend(friend.id, friend.friend_id);
                       }}
                       variant="outline"
                       className="btn-retro w-full sm:w-auto"
