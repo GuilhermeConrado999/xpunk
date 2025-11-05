@@ -24,8 +24,8 @@ const ForumPostPage = () => {
 
   useEffect(() => {
     if (postId) {
-      await fetchComments();
-      await fetchPost();
+      fetchPost();
+      fetchComments();
     }
   }, [postId, user]);
 
@@ -79,7 +79,7 @@ const ForumPostPage = () => {
     
     setLoading(false);
   };
-  
+
   const fetchComments = async () => {
     if (!postId) return;
 
@@ -142,7 +142,7 @@ const ForumPostPage = () => {
 
   const handleCommentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+    
     if (!user) {
       toast({
         title: "Login necessário",
@@ -156,29 +156,25 @@ const ForumPostPage = () => {
 
     setSubmitting(true);
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('forum_comments')
         .insert({
           post_id: postId,
           user_id: user.id,
           content: commentContent,
           parent_comment_id: null
-        })
-        .select(`*, profiles!forum_comments_user_id_fkey (username, display_name, avatar_url)`)
-        .single();
+        });
 
       if (error) throw error;
 
-      // Atualiza localmente
-      setComments((prev) => [data, ...prev]);
-  
       toast({
         title: "Comentário publicado",
         description: "Seu comentário foi adicionado com sucesso"
       });
 
       setCommentContent('');
-      await fetchPost(); // Atualiza contagem
+      fetchComments();
+      fetchPost();
     } catch (error) {
       toast({
         title: "Erro",
