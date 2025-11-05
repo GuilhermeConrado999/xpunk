@@ -30,7 +30,7 @@ interface Community {
 
 interface CreatePostDialogProps {
   communities: Community[];
-  onPostCreated: () => void;
+  onPostCreated: (newPost: any) => void; // recebe o novo post
 }
 
 export const CreatePostDialog = ({ communities, onPostCreated }: CreatePostDialogProps) => {
@@ -56,20 +56,32 @@ export const CreatePostDialog = ({ communities, onPostCreated }: CreatePostDialo
       return;
     }
 
-    if (!formData.title.trim() || !formData.community_id) {
-      return;
-    }
+    if (!formData.title.trim() || !formData.community_id) return;
 
     setSubmitting(true);
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('forum_posts')
         .insert({
           user_id: user.id,
           title: formData.title,
           content: formData.content || null,
           community_id: formData.community_id
-        });
+        })
+        .select(`
+          *,
+          profiles!forum_posts_user_id_fkey (
+            username,
+            display_name,
+            avatar_url
+          ),
+          communities (
+            name,
+            emoji,
+            color
+          )
+        `)
+        .single();
 
       if (error) throw error;
 
@@ -80,7 +92,9 @@ export const CreatePostDialog = ({ communities, onPostCreated }: CreatePostDialo
 
       setFormData({ title: '', content: '', community_id: '' });
       setOpen(false);
-      onPostCreated();
+
+      // Atualiza a lista imediatamente
+      onPostCreated(data);
     } catch (error) {
       toast({
         title: "Erro",
