@@ -132,9 +132,9 @@ const RetroHeader = () => {
                     PERFIL
                   </Button>
                 </Link>
-                <Link to="/guestbook">
+                <Link to="/forum">
                   <Button variant="ghost" className="btn-retro text-xs">
-                    GUESTBOOK
+                    FÓRUM
                   </Button>
                 </Link>
                 
@@ -145,9 +145,9 @@ const RetroHeader = () => {
                 />
               </>}
             {!user && (
-              <Link to="/guestbook">
+              <Link to="/forum">
                 <Button variant="ghost" className="btn-retro text-xs">
-                  GUESTBOOK
+                  FÓRUM
                 </Button>
               </Link>
             )}

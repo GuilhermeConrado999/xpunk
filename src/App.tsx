@@ -9,7 +9,8 @@ import Index from "./pages/Index";
 import Profile from "./pages/Profile";
 import Communities from "./pages/Communities";
 import CommunityView from "./pages/CommunityView";
-import Guestbook from "./pages/Guestbook";
+import Forum from "./pages/Forum";
+import ForumPost from "./pages/ForumPost";
 import Upload from "./pages/Upload";
 import NotFound from "./pages/NotFound";
 import ResetPassword from "./pages/ResetPassword";
@@ -41,7 +42,8 @@ const AppContent = () => {
             <Route path="/profile/:userId" element={<Profile />} />
             <Route path="/communities" element={<Communities />} />
             <Route path="/community/:id" element={<CommunityView />} />
-            <Route path="/guestbook" element={<Guestbook />} />
+            <Route path="/forum" element={<Forum />} />
+            <Route path="/forum/post/:postId" element={<ForumPost />} />
             <Route path="/upload" element={<Upload />} />
             <Route path="*" element={<NotFound />} />
           </>
