@@ -550,11 +550,6 @@ const Profile = () => {
                     {userStats.xp}/1000 XP
                   </div>
                   <div className="flex flex-col gap-2 mt-2">
-                    <Badge 
-                      className="bg-gradient-to-r from-retro-pink to-retro-purple border-retro-cyan text-[10px] pixel-border"
-                    >
-                      ⚡ BETA TESTER
-                    </Badge>
                     {userRoles.some(r => r.role === 'dev') && (
                       <Badge 
                         variant="dev"
