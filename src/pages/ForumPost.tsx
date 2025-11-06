@@ -34,30 +34,30 @@ const ForumPostPage = () => {
 
     const { data, error } = await supabase
       .from('forum_posts')
-      .select(`
-        *,
-        profiles!forum_posts_user_id_fkey (
-          username,
-          display_name,
-          avatar_url
-        ),
-        communities (
-          name,
-          emoji,
-          color
-        )
-      `)
+      .select('*')
       .eq('id', postId)
-      .single();
+      .maybeSingle();
 
     if (!error && data) {
-      // Buscar contagem de comentários
-      const { count } = await supabase
-        .from('forum_comments')
-        .select('*', { count: 'exact', head: true })
-        .eq('post_id', data.id);
+      const [{ count }, { data: profileData }, { data: communityData }] = await Promise.all([
+        supabase
+          .from('forum_comments')
+          .select('*', { count: 'exact', head: true })
+          .eq('post_id', data.id),
+        supabase
+          .from('profiles')
+          .select('user_id, username, display_name, avatar_url')
+          .eq('user_id', data.user_id)
+          .maybeSingle(),
+        data.community_id
+          ? supabase
+              .from('communities')
+              .select('id, name, emoji, color')
+              .eq('id', data.community_id)
+              .maybeSingle()
+          : Promise.resolve({ data: null })
+      ]);
 
-      // Buscar voto do usuário
       let userVote = null;
       if (user) {
         const { data: voteData } = await supabase
@@ -65,13 +65,18 @@ const ForumPostPage = () => {
           .select('vote_type')
           .eq('post_id', data.id)
           .eq('user_id', user.id)
-          .single();
-        
+          .maybeSingle();
         userVote = voteData?.vote_type || null;
       }
 
       setPost({
         ...data,
+        profiles: profileData
+          ? { username: profileData.username, display_name: profileData.display_name, avatar_url: profileData.avatar_url }
+          : undefined,
+        communities: communityData
+          ? { name: communityData.name, emoji: communityData.emoji, color: communityData.color }
+          : null,
         _count: { comments: count || 0 },
         userVote
       });
@@ -85,37 +90,48 @@ const ForumPostPage = () => {
 
     const { data, error } = await supabase
       .from('forum_comments')
-      .select(`
-        *,
-        profiles!forum_comments_user_id_fkey (
-          username,
-          display_name,
-          avatar_url
-        )
-      `)
+      .select('*')
       .eq('post_id', postId)
       .is('parent_comment_id', null)
       .order('created_at', { ascending: false });
 
     if (!error && data) {
-      // Buscar respostas e votos para cada comentário
-      const commentsWithData = await Promise.all(
-        data.map(async (comment) => {
-          // Buscar respostas
-          const { data: replies } = await supabase
-            .from('forum_comments')
-            .select(`
-              *,
-              profiles!forum_comments_user_id_fkey (
-                username,
-                display_name,
-                avatar_url
-              )
-            `)
-            .eq('parent_comment_id', comment.id)
-            .order('created_at', { ascending: true });
+      const topLevel = data || [];
+      const topIds = topLevel.map((c: any) => c.id);
 
-          // Buscar voto do usuário
+      const { data: repliesData } = topIds.length
+        ? await supabase
+            .from('forum_comments')
+            .select('*')
+            .in('parent_comment_id', topIds)
+            .order('created_at', { ascending: true })
+        : { data: [] } as any;
+
+      const allComments = [...topLevel, ...(repliesData || [])];
+      const userIds = Array.from(new Set(allComments.map((c: any) => c.user_id).filter(Boolean)));
+
+      const { data: profilesData } = userIds.length
+        ? await supabase
+            .from('profiles')
+            .select('user_id, username, display_name, avatar_url')
+            .in('user_id', userIds)
+        : { data: [] } as any;
+
+      const profilesMap = new Map(
+        (profilesData || []).map((p: any) => [
+          p.user_id,
+          { username: p.username, display_name: p.display_name, avatar_url: p.avatar_url }
+        ])
+      );
+
+      const repliesByParent = new Map<string, any[]>(topIds.map((id: string) => [id, []]));
+      (repliesData || []).forEach((r: any) => {
+        const arr = repliesByParent.get(r.parent_comment_id) || [];
+        repliesByParent.set(r.parent_comment_id, [...arr, { ...r, profiles: profilesMap.get(r.user_id), post_id: postId }]);
+      });
+
+      const commentsWithData = await Promise.all(
+        topLevel.map(async (comment: any) => {
           let userVote = null;
           if (user) {
             const { data: voteData } = await supabase
@@ -123,15 +139,15 @@ const ForumPostPage = () => {
               .select('vote_type')
               .eq('comment_id', comment.id)
               .eq('user_id', user.id)
-              .single();
-            
+              .maybeSingle();
             userVote = voteData?.vote_type || null;
           }
 
           return {
             ...comment,
+            profiles: profilesMap.get(comment.user_id),
             post_id: postId,
-            replies: replies || [],
+            replies: repliesByParent.get(comment.id) || [],
             userVote
           };
         })

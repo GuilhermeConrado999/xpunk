@@ -201,7 +201,7 @@ export const ForumPost = ({ post, onClick }: ForumPostProps) => {
                 <Avatar className="h-6 w-6">
                   <AvatarImage src={post.profiles?.avatar_url || undefined} />
                   <AvatarFallback className="bg-retro-purple text-white text-xs">
-                    {post.profiles?.username.charAt(0).toUpperCase()}
+                    {post.profiles?.username?.charAt(0)?.toUpperCase() || '?'}
                   </AvatarFallback>
                 </Avatar>
                 <span>u/{post.profiles?.username}</span>

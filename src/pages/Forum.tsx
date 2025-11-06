@@ -48,19 +48,7 @@ const Forum = () => {
     
     let query = supabase
       .from('forum_posts')
-      .select(`
-        *,
-        profiles!forum_posts_user_id_fkey (
-          username,
-          display_name,
-          avatar_url
-        ),
-        communities (
-          name,
-          emoji,
-          color
-        )
-      `);
+      .select('*');
 
     if (selectedCommunity) {
       query = query.eq('community_id', selectedCommunity);
@@ -79,15 +67,44 @@ const Forum = () => {
     const { data: postsData, error } = await query;
 
     if (!error && postsData) {
-      // Buscar contagem de comentários para cada post
+      const userIds = Array.from(new Set(postsData.map((p: any) => p.user_id).filter(Boolean)));
+      const commIds = Array.from(new Set(postsData.map((p: any) => p.community_id).filter(Boolean)));
+
+      const [{ data: profilesData }, { data: commsData }] = await Promise.all([
+        userIds.length
+          ? supabase
+              .from('profiles')
+              .select('user_id, username, display_name, avatar_url')
+              .in('user_id', userIds)
+          : Promise.resolve({ data: [] as any }),
+        commIds.length
+          ? supabase
+              .from('communities')
+              .select('id, name, emoji, color')
+              .in('id', commIds)
+          : Promise.resolve({ data: [] as any })
+      ]);
+
+      const profilesMap = new Map(
+        (profilesData || []).map((p: any) => [
+          p.user_id,
+          { username: p.username, display_name: p.display_name, avatar_url: p.avatar_url }
+        ])
+      );
+      const commsMap = new Map(
+        (commsData || []).map((c: any) => [
+          c.id,
+          { name: c.name, emoji: c.emoji, color: c.color }
+        ])
+      );
+
       const postsWithCounts = await Promise.all(
-        postsData.map(async (post) => {
+        postsData.map(async (post: any) => {
           const { count } = await supabase
             .from('forum_comments')
             .select('*', { count: 'exact', head: true })
             .eq('post_id', post.id);
 
-          // Buscar voto do usuário atual
           let userVote = null;
           if (user) {
             const { data: voteData } = await supabase
@@ -95,13 +112,14 @@ const Forum = () => {
               .select('vote_type')
               .eq('post_id', post.id)
               .eq('user_id', user.id)
-              .single();
-            
+              .maybeSingle();
             userVote = voteData?.vote_type || null;
           }
 
           return {
             ...post,
+            profiles: profilesMap.get(post.user_id),
+            communities: commsMap.get(post.community_id) || null,
             _count: { comments: count || 0 },
             userVote
           };

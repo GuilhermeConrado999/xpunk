@@ -177,7 +177,7 @@ export const ForumComment = ({ comment, onReply, level = 0 }: ForumCommentProps)
               <Avatar className="h-5 w-5">
                 <AvatarImage src={comment.profiles?.avatar_url || undefined} />
                 <AvatarFallback className="bg-retro-purple text-white text-xs">
-                  {comment.profiles?.username.charAt(0).toUpperCase()}
+                  {comment.profiles?.username?.charAt(0)?.toUpperCase() || '?'}
                 </AvatarFallback>
               </Avatar>
               <span className="font-semibold">u/{comment.profiles?.username}</span>
