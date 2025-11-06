@@ -24,6 +24,7 @@ interface ForumCommentProps {
     created_at: string;
     user_id: string;
     parent_comment_id: string | null;
+    post_id: string;
     profiles?: {
       username: string;
       display_name: string | null;
@@ -87,7 +88,7 @@ export const ForumComment = ({ comment, onReply, level = 0 }: ForumCommentProps)
     }
   };
 
-  const handleReplySubmit = async () => {
+  const handleReplySubmit = async (postId: string) => {
     if (!user || !replyContent.trim()) return;
 
     setSubmitting(true);
@@ -95,7 +96,7 @@ export const ForumComment = ({ comment, onReply, level = 0 }: ForumCommentProps)
       await supabase
         .from('forum_comments')
         .insert({
-          post_id: comment.id,
+          post_id: postId,
           user_id: user.id,
           parent_comment_id: comment.id,
           content: replyContent
@@ -230,7 +231,7 @@ export const ForumComment = ({ comment, onReply, level = 0 }: ForumCommentProps)
               />
               <div className="flex gap-2">
                 <Button
-                  onClick={handleReplySubmit}
+                  onClick={() => handleReplySubmit(comment.post_id)}
                   disabled={!replyContent.trim() || submitting}
                   className="btn-retro"
                   size="sm"

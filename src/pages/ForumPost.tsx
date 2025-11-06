@@ -130,6 +130,7 @@ const ForumPostPage = () => {
 
           return {
             ...comment,
+            post_id: postId,
             replies: replies || [],
             userVote
           };
