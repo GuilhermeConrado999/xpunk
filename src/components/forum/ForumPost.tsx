@@ -61,31 +61,73 @@ export const ForumPost = ({ post, onClick }: ForumPostProps) => {
     }
 
     try {
-      // Se já votou igual, remove o voto
+      // Buscar o post atual do banco para ter os valores reais
+      const { data: currentPost } = await supabase
+        .from('forum_posts')
+        .select('upvotes, downvotes')
+        .eq('id', post.id)
+        .single();
+
+      if (!currentPost) return;
+
+      let newUpvotes = currentPost.upvotes;
+      let newDownvotes = currentPost.downvotes;
+
       if (currentVote === voteType) {
+        // Remover voto
         await supabase
           .from('forum_post_votes')
           .delete()
           .eq('post_id', post.id)
           .eq('user_id', user.id);
 
-        setVoteCount(prev => prev + (voteType === 'up' ? -1 : 1));
+        if (voteType === 'up') {
+          newUpvotes = Math.max(0, newUpvotes - 1);
+        } else {
+          newDownvotes = Math.max(0, newDownvotes - 1);
+        }
         setCurrentVote(null);
       } else {
-        // Cria ou atualiza voto
+        // Adicionar ou mudar voto
         await supabase
           .from('forum_post_votes')
           .upsert({
             post_id: post.id,
             user_id: user.id,
             vote_type: voteType
+          }, {
+            onConflict: 'post_id,user_id'
           });
 
-        const diff = currentVote ? 2 : 1;
-        setVoteCount(prev => prev + (voteType === 'up' ? diff : -diff));
+        // Se estava com voto oposto, remove do contador antigo
+        if (currentVote === 'up') {
+          newUpvotes = Math.max(0, newUpvotes - 1);
+        } else if (currentVote === 'down') {
+          newDownvotes = Math.max(0, newDownvotes - 1);
+        }
+
+        // Adiciona no novo contador
+        if (voteType === 'up') {
+          newUpvotes += 1;
+        } else {
+          newDownvotes += 1;
+        }
         setCurrentVote(voteType);
       }
+
+      // Atualizar os contadores no banco
+      await supabase
+        .from('forum_posts')
+        .update({
+          upvotes: newUpvotes,
+          downvotes: newDownvotes
+        })
+        .eq('id', post.id);
+
+      // Atualizar o estado local
+      setVoteCount(newUpvotes - newDownvotes);
     } catch (error) {
+      console.error('Error voting:', error);
       toast({
         title: "Erro ao votar",
         description: "Não foi possível registrar seu voto",
