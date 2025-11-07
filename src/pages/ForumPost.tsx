@@ -88,73 +88,62 @@ const ForumPostPage = () => {
   const fetchComments = async () => {
     if (!postId) return;
 
-    const { data, error } = await supabase
+    // Buscar TODOS os comentários do post de uma vez
+    const { data: allCommentsData, error } = await supabase
       .from('forum_comments')
       .select('*')
       .eq('post_id', postId)
-      .is('parent_comment_id', null)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: true });
 
-    if (!error && data) {
-      const topLevel = data || [];
-      const topIds = topLevel.map((c: any) => c.id);
+    if (error || !allCommentsData) return;
 
-      const { data: repliesData } = topIds.length
-        ? await supabase
-            .from('forum_comments')
-            .select('*')
-            .in('parent_comment_id', topIds)
-            .order('created_at', { ascending: true })
-        : { data: [] } as any;
+    // Buscar perfis de todos os usuários
+    const userIds = Array.from(new Set(allCommentsData.map((c: any) => c.user_id).filter(Boolean)));
+    const { data: profilesData } = userIds.length
+      ? await supabase
+          .from('profiles')
+          .select('user_id, username, display_name, avatar_url')
+          .in('user_id', userIds)
+      : { data: [] } as any;
 
-      const allComments = [...topLevel, ...(repliesData || [])];
-      const userIds = Array.from(new Set(allComments.map((c: any) => c.user_id).filter(Boolean)));
+    const profilesMap = new Map(
+      (profilesData || []).map((p: any) => [
+        p.user_id,
+        { username: p.username, display_name: p.display_name, avatar_url: p.avatar_url }
+      ])
+    );
 
-      const { data: profilesData } = userIds.length
-        ? await supabase
-            .from('profiles')
-            .select('user_id, username, display_name, avatar_url')
-            .in('user_id', userIds)
-        : { data: [] } as any;
-
-      const profilesMap = new Map(
-        (profilesData || []).map((p: any) => [
-          p.user_id,
-          { username: p.username, display_name: p.display_name, avatar_url: p.avatar_url }
-        ])
-      );
-
-      const repliesByParent = new Map<string, any[]>(topIds.map((id: string) => [id, []]));
-      (repliesData || []).forEach((r: any) => {
-        const arr = repliesByParent.get(r.parent_comment_id) || [];
-        repliesByParent.set(r.parent_comment_id, [...arr, { ...r, profiles: profilesMap.get(r.user_id), post_id: postId }]);
-      });
-
-      const commentsWithData = await Promise.all(
-        topLevel.map(async (comment: any) => {
-          let userVote = null;
-          if (user) {
-            const { data: voteData } = await supabase
-              .from('forum_comment_votes')
-              .select('vote_type')
-              .eq('comment_id', comment.id)
-              .eq('user_id', user.id)
-              .maybeSingle();
-            userVote = voteData?.vote_type || null;
-          }
-
-          return {
-            ...comment,
-            profiles: profilesMap.get(comment.user_id),
-            post_id: postId,
-            replies: repliesByParent.get(comment.id) || [],
-            userVote
-          };
-        })
-      );
-
-      setComments(commentsWithData);
+    // Buscar votos do usuário para todos os comentários se estiver logado
+    let userVotesMap = new Map<string, string>();
+    if (user) {
+      const commentIds = allCommentsData.map((c: any) => c.id);
+      const { data: votesData } = await supabase
+        .from('forum_comment_votes')
+        .select('comment_id, vote_type')
+        .in('comment_id', commentIds)
+        .eq('user_id', user.id);
+      
+      if (votesData) {
+        userVotesMap = new Map(votesData.map((v: any) => [v.comment_id, v.vote_type]));
+      }
     }
+
+    // Função recursiva para organizar comentários em hierarquia
+    const organizeComments = (parentId: string | null): any[] => {
+      return allCommentsData
+        .filter((c: any) => c.parent_comment_id === parentId)
+        .map((comment: any) => ({
+          ...comment,
+          profiles: profilesMap.get(comment.user_id),
+          post_id: postId,
+          userVote: userVotesMap.get(comment.id) || null,
+          replies: organizeComments(comment.id) // Recursivamente busca todas as respostas
+        }));
+    };
+
+    // Organizar apenas comentários de nível superior
+    const topLevelComments = organizeComments(null);
+    setComments(topLevelComments);
   };
 
   const handleCommentSubmit = async (e: React.FormEvent) => {

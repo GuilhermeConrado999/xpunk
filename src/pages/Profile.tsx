@@ -553,9 +553,9 @@ const Profile = () => {
                     {userRoles.some(r => r.role === 'dev') && (
                       <Badge 
                         variant="dev"
-                        className="text-[11px] uppercase tracking-wider"
+                        className="pixel-border"
                       >
-                        ⚡ DEV ⚡
+                        DEV
                       </Badge>
                     )}
                   </div>
