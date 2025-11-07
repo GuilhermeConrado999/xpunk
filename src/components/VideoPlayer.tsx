@@ -34,7 +34,7 @@ interface Comment {
   content: string;
   created_at: string;
   user_id: string;
-  profiles: Profile;
+  profiles: Profile | null;
 }
 
 interface VideoPlayerProps {
