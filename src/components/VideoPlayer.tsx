@@ -24,8 +24,9 @@ interface Video {
 }
 
 interface Profile {
+  user_id: string;
   username: string;
-  display_name: string;
+  display_name: string | null;
   avatar_url: string | null;
 }
 
@@ -98,20 +99,41 @@ const VideoPlayer = ({ video, open, onOpenChange }: VideoPlayerProps) => {
       }
 
       // Fetch comments with profiles
-      const { data: commentsData } = await supabase
+      const { data: commentsData, error: commentsError } = await supabase
         .from('comments')
-        .select(`
-          *,
-          profiles:user_id (
-            username,
-            display_name,
-            avatar_url
-          )
-        `)
+        .select('*')
         .eq('video_id', video.id)
         .order('created_at', { ascending: false });
 
-      if (commentsData) setComments(commentsData as any);
+      if (commentsError) {
+        console.error('Error fetching comments:', commentsError);
+        setComments([]);
+      } else if (commentsData) {
+        const userIds = Array.from(new Set(commentsData.map((comment) => comment.user_id)));
+
+        let profilesMap = new Map<string, Profile>();
+        if (userIds.length > 0) {
+          const { data: profilesData, error: profilesError } = await supabase
+            .from('profiles')
+            .select('user_id, username, display_name, avatar_url')
+            .in('user_id', userIds);
+
+          if (profilesError) {
+            console.warn('Unable to load profiles for comments:', profilesError.message);
+          } else if (profilesData) {
+            profilesMap = new Map(
+              profilesData.map((profile) => [profile.user_id, profile as Profile])
+            );
+          }
+        }
+
+        const commentsWithProfiles = commentsData.map((comment) => ({
+          ...comment,
+          profiles: profilesMap.get(comment.user_id) ?? null,
+        }));
+
+        setComments(commentsWithProfiles as Comment[]);
+      }
     } catch (error) {
       console.error('Error fetching video data:', error);
     }
