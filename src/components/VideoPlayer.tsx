@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { Download, Star, MessageSquare, Send } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 
 interface Video {
   id: string;
@@ -348,17 +349,15 @@ const VideoPlayer = ({ video, open, onOpenChange }: VideoPlayerProps) => {
                       <div className="w-8 h-8 rounded-full bg-primary flex-shrink-0" />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <div className="w-8 h-8 rounded-full overflow-hidden bg-primary flex items-center justify-center text-mono text-sm text-white">
-                            {comment.profiles?.avatar_url ? (
-                              <img
-                                src={comment.profiles.avatar_url}
-                                alt={comment.profiles?.username ?? 'Avatar'}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              (comment.profiles?.username?.charAt(0).toUpperCase() ?? 'U')
-                            )}
-                          </div>
+                          <Avatar className="w-8 h-8">
+                            <AvatarImage
+                              src={comment.profiles?.avatar_url || undefined}
+                              alt={comment.profiles?.username ?? 'Avatar'}
+                            />
+                            <AvatarFallback className="bg-muted text-mono text-sm">
+                              {comment.profiles?.username?.charAt(0).toUpperCase() ?? 'U'}
+                            </AvatarFallback>
+                          </Avatar>
                           <p className="text-mono text-sm font-bold">
                             {comment.profiles?.username ?? 'Usuário'}
                           </p>
