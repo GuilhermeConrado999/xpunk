@@ -57,18 +57,6 @@ export const ForumComment = ({ comment, onReply, level = 0 }: ForumCommentProps)
     }
 
     try {
-      // Buscar o comentário atual do banco para ter os valores reais
-      const { data: currentComment } = await supabase
-        .from('forum_comments')
-        .select('upvotes, downvotes')
-        .eq('id', comment.id)
-        .single();
-
-      if (!currentComment) return;
-
-      let newUpvotes = currentComment.upvotes;
-      let newDownvotes = currentComment.downvotes;
-
       if (currentVote === voteType) {
         // Remover voto
         await supabase
@@ -77,11 +65,16 @@ export const ForumComment = ({ comment, onReply, level = 0 }: ForumCommentProps)
           .eq('comment_id', comment.id)
           .eq('user_id', user.id);
 
-        if (voteType === 'up') {
-          newUpvotes = Math.max(0, newUpvotes - 1);
-        } else {
-          newDownvotes = Math.max(0, newDownvotes - 1);
-        }
+        // Atualizar contador no banco
+        const newUpvotes = voteType === 'up' ? Math.max(0, comment.upvotes - 1) : comment.upvotes;
+        const newDownvotes = voteType === 'down' ? Math.max(0, comment.downvotes - 1) : comment.downvotes;
+        
+        await supabase
+          .from('forum_comments')
+          .update({ upvotes: newUpvotes, downvotes: newDownvotes })
+          .eq('id', comment.id);
+
+        setVoteCount(newUpvotes - newDownvotes);
         setCurrentVote(null);
       } else {
         // Adicionar ou mudar voto
@@ -95,33 +88,35 @@ export const ForumComment = ({ comment, onReply, level = 0 }: ForumCommentProps)
             onConflict: 'comment_id,user_id'
           });
 
-        // Se estava com voto oposto, remove do contador antigo
+        // Calcular novos valores
+        let newUpvotes = comment.upvotes;
+        let newDownvotes = comment.downvotes;
+
         if (currentVote === 'up') {
           newUpvotes = Math.max(0, newUpvotes - 1);
         } else if (currentVote === 'down') {
           newDownvotes = Math.max(0, newDownvotes - 1);
         }
 
-        // Adiciona no novo contador
         if (voteType === 'up') {
           newUpvotes += 1;
         } else {
           newDownvotes += 1;
         }
+
+        // Atualizar contador no banco
+        await supabase
+          .from('forum_comments')
+          .update({ upvotes: newUpvotes, downvotes: newDownvotes })
+          .eq('id', comment.id);
+
+        setVoteCount(newUpvotes - newDownvotes);
         setCurrentVote(voteType);
+        
+        // Atualizar o objeto comment para futuras operações
+        comment.upvotes = newUpvotes;
+        comment.downvotes = newDownvotes;
       }
-
-      // Atualizar os contadores no banco
-      await supabase
-        .from('forum_comments')
-        .update({
-          upvotes: newUpvotes,
-          downvotes: newDownvotes
-        })
-        .eq('id', comment.id);
-
-      // Atualizar o estado local
-      setVoteCount(newUpvotes - newDownvotes);
     } catch (error) {
       console.error('Error voting:', error);
       toast({
