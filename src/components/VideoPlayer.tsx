@@ -326,7 +326,7 @@ const VideoPlayer = ({ video, open, onOpenChange }: VideoPlayerProps) => {
                       <div className="w-8 h-8 rounded-full bg-primary flex-shrink-0" />
                       <div className="flex-1 min-w-0">
                         <p className="text-mono text-sm font-bold">
-                          {comment.profiles.username}
+                           {comment.profiles?.username || 'Anônimo'}
                         </p>
                         <p className="text-xs text-muted-foreground text-terminal">
                           {formatDate(comment.created_at)}
