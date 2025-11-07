@@ -347,9 +347,22 @@ const VideoPlayer = ({ video, open, onOpenChange }: VideoPlayerProps) => {
                     <div className="flex items-start space-x-3">
                       <div className="w-8 h-8 rounded-full bg-primary flex-shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-mono text-sm font-bold">
-                          {comment.profiles?.username ?? 'Usuário'}
-                        </p>
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className="w-8 h-8 rounded-full overflow-hidden bg-primary flex items-center justify-center text-mono text-sm text-white">
+                            {comment.profiles?.avatar_url ? (
+                              <img
+                                src={comment.profiles.avatar_url}
+                                alt={comment.profiles?.username ?? 'Avatar'}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              (comment.profiles?.username?.charAt(0).toUpperCase() ?? 'U')
+                            )}
+                          </div>
+                          <p className="text-mono text-sm font-bold">
+                            {comment.profiles?.username ?? 'Usuário'}
+                          </p>
+                        </div>
                         <p className="text-xs text-muted-foreground text-terminal">
                           {formatDate(comment.created_at)}
                         </p>
