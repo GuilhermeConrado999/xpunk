@@ -346,7 +346,6 @@ const VideoPlayer = ({ video, open, onOpenChange }: VideoPlayerProps) => {
                 {comments.map((comment) => (
                   <div key={comment.id} className="retro-box p-3 bg-card">
                     <div className="flex items-start space-x-3">
-                      <div className="w-8 h-8 rounded-full bg-primary flex-shrink-0" />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <Avatar className="w-8 h-8">
