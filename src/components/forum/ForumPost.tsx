@@ -15,6 +15,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useNavigate } from 'react-router-dom';
 
 interface ForumPostProps {
   post: {
@@ -47,6 +48,7 @@ interface ForumPostProps {
 export const ForumPost = ({ post, onClick }: ForumPostProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [currentVote, setCurrentVote] = useState(post.userVote);
   const [voteCount, setVoteCount] = useState(post.upvotes - post.downvotes);
 
@@ -235,13 +237,27 @@ export const ForumPost = ({ post, onClick }: ForumPostProps) => {
 
             <div className="flex items-center gap-4 text-xs text-terminal text-muted-foreground">
               <div className="flex items-center gap-2">
-                <Avatar className="h-6 w-6">
+                <Avatar 
+                  className="h-6 w-6 cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (post.user_id) navigate(`/profile/${post.user_id}`);
+                  }}
+                >
                   <AvatarImage src={post.profiles?.avatar_url || undefined} />
                   <AvatarFallback className="bg-retro-purple text-white text-xs">
                     {post.profiles?.username?.charAt(0)?.toUpperCase() || '?'}
                   </AvatarFallback>
                 </Avatar>
-                <span>u/{post.profiles?.username}</span>
+                <span 
+                  className="cursor-pointer hover:text-retro-cyan transition-colors"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (post.user_id) navigate(`/profile/${post.user_id}`);
+                  }}
+                >
+                  u/{post.profiles?.username}
+                </span>
               </div>
               <span>•</span>
               <span>

@@ -16,6 +16,7 @@ import VideoCardReal from '@/components/VideoCardReal';
 import FriendsList from '@/components/FriendsList';
 import UserSearch from '@/components/UserSearch';
 import ChatDialog from '@/components/ChatDialog';
+import { ProfileComments } from '@/components/ProfileComments';
 
 interface Profile {
   id: string;
@@ -802,6 +803,12 @@ const Profile = () => {
                 )}
               </CardContent>
             </Card>
+
+            {/* Profile Comments Section */}
+            <ProfileComments 
+              profileUserId={profileUserId!} 
+              isOwnProfile={isOwnProfile} 
+            />
 
             {/* Achievements Section */}
             <Card className="retro-box bg-card">

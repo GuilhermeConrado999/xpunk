@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { Download, Star, MessageSquare, Send } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { useNavigate } from 'react-router-dom';
 
 interface Video {
   id: string;
@@ -47,6 +48,7 @@ interface VideoPlayerProps {
 
 const VideoPlayer = ({ video, open, onOpenChange }: VideoPlayerProps) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [userRating, setUserRating] = useState(0);
   const [averageRating, setAverageRating] = useState(0);
@@ -276,7 +278,17 @@ const VideoPlayer = ({ video, open, onOpenChange }: VideoPlayerProps) => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-mono text-sm text-muted-foreground">
-                    por: <span className="text-terminal hover-retro">{profile?.username || 'Anônimo'}</span>
+                    por: <span 
+                      className="text-terminal hover-retro cursor-pointer hover:text-retro-cyan transition-colors"
+                      onClick={() => {
+                        if (profile?.user_id) {
+                          onOpenChange(false);
+                          navigate(`/profile/${profile.user_id}`);
+                        }
+                      }}
+                    >
+                      {profile?.username || 'Anônimo'}
+                    </span>
                   </p>
                   <p className="text-xs text-terminal text-muted-foreground">
                     {video.views} views • {formatDate(video.created_at)}
@@ -348,7 +360,15 @@ const VideoPlayer = ({ video, open, onOpenChange }: VideoPlayerProps) => {
                     <div className="flex items-start space-x-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <Avatar className="w-8 h-8">
+                          <Avatar 
+                            className="w-8 h-8 cursor-pointer"
+                            onClick={() => {
+                              if (comment.profiles?.user_id) {
+                                onOpenChange(false);
+                                navigate(`/profile/${comment.profiles.user_id}`);
+                              }
+                            }}
+                          >
                             <AvatarImage
                               src={comment.profiles?.avatar_url || undefined}
                               alt={comment.profiles?.username ?? 'Avatar'}
@@ -357,7 +377,15 @@ const VideoPlayer = ({ video, open, onOpenChange }: VideoPlayerProps) => {
                               {comment.profiles?.username?.charAt(0).toUpperCase() ?? 'U'}
                             </AvatarFallback>
                           </Avatar>
-                          <p className="text-mono text-sm font-bold">
+                          <p 
+                            className="text-mono text-sm font-bold cursor-pointer hover:text-retro-cyan transition-colors"
+                            onClick={() => {
+                              if (comment.profiles?.user_id) {
+                                onOpenChange(false);
+                                navigate(`/profile/${comment.profiles.user_id}`);
+                              }
+                            }}
+                          >
                             {comment.profiles?.username ?? 'Usuário'}
                           </p>
                         </div>

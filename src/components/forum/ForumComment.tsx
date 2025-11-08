@@ -14,6 +14,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useNavigate } from 'react-router-dom';
 
 interface ForumCommentProps {
   comment: {
@@ -40,6 +41,7 @@ interface ForumCommentProps {
 export const ForumComment = ({ comment, onReply, level = 0 }: ForumCommentProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [currentVote, setCurrentVote] = useState(comment.userVote);
   const [voteCount, setVoteCount] = useState(comment.upvotes - comment.downvotes);
   const [showReplyBox, setShowReplyBox] = useState(false);
@@ -213,13 +215,25 @@ export const ForumComment = ({ comment, onReply, level = 0 }: ForumCommentProps)
         <div className="flex-1 space-y-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-xs text-terminal text-muted-foreground">
-              <Avatar className="h-5 w-5">
+              <Avatar 
+                className="h-5 w-5 cursor-pointer"
+                onClick={() => {
+                  if (comment.user_id) navigate(`/profile/${comment.user_id}`);
+                }}
+              >
                 <AvatarImage src={comment.profiles?.avatar_url || undefined} />
                 <AvatarFallback className="bg-retro-purple text-white text-xs">
                   {comment.profiles?.username?.charAt(0)?.toUpperCase() || '?'}
                 </AvatarFallback>
               </Avatar>
-              <span className="font-semibold">u/{comment.profiles?.username}</span>
+              <span 
+                className="font-semibold cursor-pointer hover:text-retro-cyan transition-colors"
+                onClick={() => {
+                  if (comment.user_id) navigate(`/profile/${comment.user_id}`);
+                }}
+              >
+                u/{comment.profiles?.username}
+              </span>
               <span>•</span>
               <span>
                 {formatDistanceToNow(new Date(comment.created_at), {

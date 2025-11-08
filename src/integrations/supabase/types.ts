@@ -344,6 +344,33 @@ export type Database = {
           },
         ]
       }
+      profile_comments: {
+        Row: {
+          commenter_user_id: string
+          content: string
+          created_at: string
+          id: string
+          profile_user_id: string
+          updated_at: string
+        }
+        Insert: {
+          commenter_user_id: string
+          content: string
+          created_at?: string
+          id?: string
+          profile_user_id: string
+          updated_at?: string
+        }
+        Update: {
+          commenter_user_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          profile_user_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
