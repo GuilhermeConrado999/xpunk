@@ -154,16 +154,17 @@ const RetroHeader = () => {
           </div>
           
           <div className="flex space-x-2">
-            {user ? <Button onClick={signOut} className="btn-retro text-xs">
+            {user ? (
+              <Button onClick={signOut} className="btn-retro text-xs">
                 LOGOUT
-              </Button> : <>
+              </Button>
+            ) : (
+              <Link to="/auth">
                 <Button className="btn-retro text-xs">
-                  LOGIN
+                  LOGIN / CADASTRO
                 </Button>
-                <Button variant="outline" className="btn-retro text-xs">
-                  CADASTRO
-                </Button>
-              </>}
+              </Link>
+            )}
           </div>
         </div>
       </nav>

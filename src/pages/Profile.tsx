@@ -583,7 +583,7 @@ const Profile = () => {
                   >
                     {isEditing ? 'CANCELAR' : 'EDITAR PERFIL'}
                   </Button>
-                ) : (
+                ) : user ? (
                   <div className="flex gap-2">
                     {friendshipStatus === 'accepted' && (
                       <Button 
@@ -611,7 +611,7 @@ const Profile = () => {
                       </Button>
                     )}
                   </div>
-                )}
+                ) : null}
               </div>
 
               <p className="text-mono text-sm leading-relaxed max-w-2xl">
@@ -804,12 +804,6 @@ const Profile = () => {
               </CardContent>
             </Card>
 
-            {/* Profile Comments Section */}
-            <ProfileComments 
-              profileUserId={profileUserId!} 
-              isOwnProfile={isOwnProfile} 
-            />
-
             {/* Achievements Section */}
             <Card className="retro-box bg-card">
               <CardHeader>
@@ -859,6 +853,12 @@ const Profile = () => {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Profile Comments Section */}
+            <ProfileComments 
+              profileUserId={profileUserId!} 
+              isOwnProfile={isOwnProfile} 
+            />
           </div>
 
           {/* Right Column - Stats and Activity */}
