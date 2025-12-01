@@ -31,25 +31,27 @@ const AppContent = () => {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Public routes */}
+        {/* Public routes - accessible without login */}
+        <Route path="/" element={<Index />} />
+        <Route path="/profile/:userId" element={<Profile />} />
+        <Route path="/forum" element={<Forum />} />
+        <Route path="/forum/post/:postId" element={<ForumPost />} />
+        <Route path="/auth" element={<AuthPage onAuthSuccess={() => window.location.href = '/'} />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         
-        {/* Protected routes */}
+        {/* Protected routes - require authentication */}
         {user ? (
           <>
-            <Route path="/" element={<Index />} />
             <Route path="/profile" element={<Profile />} />
-            <Route path="/profile/:userId" element={<Profile />} />
             <Route path="/communities" element={<Communities />} />
             <Route path="/community/:id" element={<CommunityView />} />
-            <Route path="/forum" element={<Forum />} />
-            <Route path="/forum/post/:postId" element={<ForumPost />} />
             <Route path="/upload" element={<Upload />} />
-            <Route path="*" element={<NotFound />} />
           </>
         ) : (
-          <Route path="*" element={<AuthPage onAuthSuccess={() => window.location.reload()} />} />
+          <Route path="/communities" element={<AuthPage onAuthSuccess={() => window.location.reload()} />} />
         )}
+        
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
   );
