@@ -26,58 +26,36 @@ const RetroHeader = () => {
     if (!user) return;
 
     // Count pending friend requests
-    const { data: friendRequests } = await supabase
-      .from('friendships')
-      .select('id')
-      .eq('friend_id', user.id)
-      .eq('status', 'pending');
+    const {
+      data: friendRequests
+    } = await supabase.from('friendships').select('id').eq('friend_id', user.id).eq('status', 'pending');
 
     // Count unread messages
-    const { data: unreadMessages } = await supabase
-      .from('messages')
-      .select('id')
-      .eq('receiver_id', user.id)
-      .eq('read', false);
-
+    const {
+      data: unreadMessages
+    } = await supabase.from('messages').select('id').eq('receiver_id', user.id).eq('read', false);
     const total = (friendRequests?.length || 0) + (unreadMessages?.length || 0);
     setNotificationCount(total);
   };
-
   useEffect(() => {
     if (!user) return;
-
     fetchNotifications();
 
     // Listen to new friend requests
-    const friendshipsChannel = supabase
-      .channel('friendships-notifications')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'friendships',
-          filter: `friend_id=eq.${user.id}`
-        },
-        () => fetchNotifications()
-      )
-      .subscribe();
+    const friendshipsChannel = supabase.channel('friendships-notifications').on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'friendships',
+      filter: `friend_id=eq.${user.id}`
+    }, () => fetchNotifications()).subscribe();
 
     // Listen to new messages
-    const messagesChannel = supabase
-      .channel('messages-notifications')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'messages',
-          filter: `receiver_id=eq.${user.id}`
-        },
-        () => fetchNotifications()
-      )
-      .subscribe();
-
+    const messagesChannel = supabase.channel('messages-notifications').on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'messages',
+      filter: `receiver_id=eq.${user.id}`
+    }, () => fetchNotifications()).subscribe();
     return () => {
       supabase.removeChannel(friendshipsChannel);
       supabase.removeChannel(messagesChannel);
@@ -139,32 +117,23 @@ const RetroHeader = () => {
                 </Link>
                 
                 {/* Notifications Popover */}
-                <NotificationsPopover 
-                  notificationCount={notificationCount}
-                  onNotificationChange={fetchNotifications}
-                />
+                <NotificationsPopover notificationCount={notificationCount} onNotificationChange={fetchNotifications} />
               </>}
-            {!user && (
-              <Link to="/forum">
+            {!user && <Link to="/forum">
                 <Button variant="ghost" className="btn-retro text-xs">
                   FÓRUM
                 </Button>
-              </Link>
-            )}
+              </Link>}
           </div>
           
           <div className="flex space-x-2">
-            {user ? (
-              <Button onClick={signOut} className="btn-retro text-xs">
+            {user ? <Button onClick={signOut} className="btn-retro text-xs">
                 LOGOUT
-              </Button>
-            ) : (
-              <Link to="/auth">
+              </Button> : <Link to="/auth">
                 <Button className="btn-retro text-xs">
                   LOGIN / CADASTRO
                 </Button>
-              </Link>
-            )}
+              </Link>}
           </div>
         </div>
       </nav>
@@ -172,8 +141,7 @@ const RetroHeader = () => {
       {/* Marquee News Ticker */}
       <div className="bg-primary text-primary-foreground p-1 overflow-hidden">
         <div className="marquee-text text-xs text-terminal">
-          ★ NOVO: Seção de Speedruns adicionada! ★ Mods de Half-Life 2 em alta ★ 
-          Let's Play de Silent Hill disponível ★ Machinima contest este mês! ★
+          ★ NOVO: Site já disponivel e configurado para uso! CRIE SUA COMUNIDADE ★
         </div>
       </div>
     </header>;
