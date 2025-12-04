@@ -7,12 +7,18 @@ interface Stats {
   totalViews: number;
 }
 
+interface CommunityStats {
+  name: string;
+  videoCount: number;
+}
+
 const SidebarStatsReal = () => {
   const [stats, setStats] = useState<Stats>({
     totalVideos: 0,
     totalUsers: 0,
     totalViews: 0
   });
+  const [communities, setCommunities] = useState<CommunityStats[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -32,14 +38,28 @@ const SidebarStatsReal = () => {
         .from('profiles')
         .select('*', { count: 'exact', head: true });
 
-      // Buscar total de views
-      const { data: viewsData } = await supabase
+      // Buscar vídeos com views e community
+      const { data: videosData } = await supabase
         .from('videos')
-        .select('views')
+        .select('views, community')
         .eq('is_public', true);
 
-      const totalViews = viewsData?.reduce((sum, video) => sum + video.views, 0) || 0;
+      const totalViews = videosData?.reduce((sum, video) => sum + (video.views || 0), 0) || 0;
 
+      // Contar vídeos por comunidade
+      const communityMap = new Map<string, number>();
+      videosData?.forEach(video => {
+        const community = video.community || 'Outros';
+        communityMap.set(community, (communityMap.get(community) || 0) + 1);
+      });
+
+      // Converter para array e ordenar por contagem
+      const communityStats: CommunityStats[] = Array.from(communityMap.entries())
+        .map(([name, videoCount]) => ({ name, videoCount }))
+        .sort((a, b) => b.videoCount - a.videoCount)
+        .slice(0, 5); // Top 5 comunidades
+
+      setCommunities(communityStats);
       setStats({
         totalVideos: videoCount || 0,
         totalUsers: userCount || 0,
@@ -101,11 +121,11 @@ const SidebarStatsReal = () => {
         <div className="text-terminal text-xs space-y-1">
           <div className="flex items-center space-x-2">
             <div className="w-2 h-2 bg-terminal-green rounded-full blink"></div>
-            <span>Membros: {Math.floor(Math.random() * 50) + 10}</span>
+            <span>Membros: {Math.max(1, Math.floor(stats.totalUsers * 0.1))}</span>
           </div>
           <div className="flex items-center space-x-2">
             <div className="w-2 h-2 bg-accent rounded-full"></div>
-            <span>Visitantes: {Math.floor(Math.random() * 100) + 20}</span>
+            <span>Visitantes: {Math.floor(stats.totalViews * 0.01) + 5}</span>
           </div>
         </div>
       </div>
@@ -117,26 +137,16 @@ const SidebarStatsReal = () => {
         </div>
         
         <div className="text-terminal text-xs space-y-1">
-          <div className="flex justify-between">
-            <span>Speedrun</span>
-            <span className="text-accent">{Math.floor(stats.totalVideos * 0.3)}</span>
-          </div>
-          <div className="flex justify-between">
-            <span>Let's Plays</span>
-            <span className="text-accent">{Math.floor(stats.totalVideos * 0.25)}</span>
-          </div>
-          <div className="flex justify-between">
-            <span>Montagens</span>
-            <span className="text-accent">{Math.floor(stats.totalVideos * 0.2)}</span>
-          </div>
-          <div className="flex justify-between">
-            <span>Mods</span>
-            <span className="text-accent">{Math.floor(stats.totalVideos * 0.15)}</span>
-          </div>
-          <div className="flex justify-between">
-            <span>Machinima</span>
-            <span className="text-accent">{Math.floor(stats.totalVideos * 0.1)}</span>
-          </div>
+          {communities.length > 0 ? (
+            communities.map((community) => (
+              <div key={community.name} className="flex justify-between">
+                <span>{community.name}</span>
+                <span className="text-accent">{community.videoCount}</span>
+              </div>
+            ))
+          ) : (
+            <div className="text-muted-foreground">Nenhuma comunidade ativa</div>
+          )}
         </div>
       </div>
 
@@ -146,10 +156,10 @@ const SidebarStatsReal = () => {
           CONTADOR DE VISITAS
         </div>
         <div className="visitor-counter text-terminal-green text-lg font-mono">
-          {(1337420 + stats.totalViews).toLocaleString()}
+          {stats.totalViews.toLocaleString()}
         </div>
         <div className="text-xs text-muted-foreground mt-1">
-          desde junho/2006
+          total de visualizações
         </div>
       </div>
 
