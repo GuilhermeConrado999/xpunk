@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import RetroHeader from '@/components/RetroHeader';
 import VideoCardReal from '@/components/VideoCardReal';
+import CommunityMembersList from '@/components/CommunityMembersList';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { Users, Video, ArrowLeft, UserPlus, UserMinus, Settings } from 'lucide-react';
 import CommunityEditDialog from '@/components/CommunityEditDialog';
 import { supabase } from '@/integrations/supabase/client';
@@ -307,29 +307,42 @@ const CommunityView = () => {
           </div>
         </div>
 
-        {/* Videos Section */}
-        <div className="retro-box bg-card/60 p-6">
-          <h2 className="text-pixel text-2xl glow-text mb-6">
-            VÍDEOS RECENTES
-          </h2>
+        {/* Content Grid with Members Sidebar */}
+        <div className="flex gap-6">
+          {/* Videos Section */}
+          <div className="flex-1 retro-box bg-card/60 p-6">
+            <h2 className="text-pixel text-2xl glow-text mb-6">
+              VÍDEOS RECENTES
+            </h2>
 
-          {videos.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-terminal text-muted-foreground">
-                Nenhum vídeo nesta comunidade ainda. Seja o primeiro a postar!
-              </p>
+            {videos.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-terminal text-muted-foreground">
+                  Nenhum vídeo nesta comunidade ainda. Seja o primeiro a postar!
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {videos.map((video) => (
+                  <VideoCardReal
+                    key={video.id}
+                    video={video}
+                    onVideoUpdated={fetchCommunityData}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Members Sidebar */}
+          <div className="hidden lg:block w-64 flex-shrink-0">
+            <div className="sticky top-4">
+              <CommunityMembersList 
+                communityId={community.id} 
+                creatorId={community.created_by}
+              />
             </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {videos.map((video) => (
-                <VideoCardReal
-                  key={video.id}
-                  video={video}
-                  onVideoUpdated={fetchCommunityData}
-                />
-              ))}
-            </div>
-          )}
+          </div>
         </div>
       </main>
 
