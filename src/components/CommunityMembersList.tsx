@@ -73,8 +73,8 @@ const CommunityMembersList = ({ communityId, creatorId }: CommunityMembersListPr
     }
   };
 
-  const handleMemberClick = (username: string) => {
-    navigate(`/profile/${username}`);
+  const handleMemberClick = (userId: string) => {
+    navigate(`/profile/${userId}`);
   };
 
   if (loading) {
@@ -101,7 +101,7 @@ const CommunityMembersList = ({ communityId, creatorId }: CommunityMembersListPr
           {members.map((member) => (
             <div
               key={member.user_id}
-              onClick={() => member.profile && handleMemberClick(member.profile.username)}
+              onClick={() => handleMemberClick(member.user_id)}
               className="flex items-center gap-3 p-2 rounded-md hover:bg-secondary/50 cursor-pointer transition-colors group"
             >
               <div className="relative">
