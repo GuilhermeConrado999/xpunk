@@ -5,6 +5,17 @@ import retroLogoBanner from '@/assets/retro-logo-banner.png';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { NotificationsPopover } from './NotificationsPopover';
+
+// Gera ou recupera um ID único para o visitante
+const getVisitorId = (): string => {
+  let visitorId = localStorage.getItem('xpunk_visitor_id');
+  if (!visitorId) {
+    visitorId = `visitor_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
+    localStorage.setItem('xpunk_visitor_id', visitorId);
+  }
+  return visitorId;
+};
+
 const RetroHeader = () => {
   const {
     user,
@@ -12,6 +23,7 @@ const RetroHeader = () => {
   } = useAuth();
   const [currentTime, setCurrentTime] = useState(new Date().toLocaleString());
   const [notificationCount, setNotificationCount] = useState(0);
+  const [visitorCount, setVisitorCount] = useState<number>(0);
 
   // Update time every second for that authentic 2000s feel
   useEffect(() => {
@@ -19,6 +31,32 @@ const RetroHeader = () => {
       setCurrentTime(new Date().toLocaleString());
     }, 1000);
     return () => clearInterval(timer);
+  }, []);
+
+  // Registrar visita e buscar contagem total
+  useEffect(() => {
+    const trackVisit = async () => {
+      const visitorId = getVisitorId();
+      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+      const sessionKey = `xpunk_visited_${today}`;
+
+      // Só registra uma visita por dia por visitante
+      if (!sessionStorage.getItem(sessionKey)) {
+        await supabase
+          .from('site_visits')
+          .insert({ visitor_id: visitorId, page_path: window.location.pathname });
+        sessionStorage.setItem(sessionKey, 'true');
+      }
+
+      // Buscar contagem total de visitantes únicos
+      const { count } = await supabase
+        .from('site_visits')
+        .select('visitor_id', { count: 'exact', head: true });
+
+      setVisitorCount(count || 0);
+    };
+
+    trackVisit();
   }, []);
 
   // Fetch and listen to notifications
@@ -76,7 +114,7 @@ const RetroHeader = () => {
           {/* Old school visitor counter */}
           <div className="text-right space-y-1">
             <div className="visitor-counter">
-              VISITORS: <span className="blink">1337</span>
+              VISITORS: <span className="blink">{visitorCount.toLocaleString()}</span>
             </div>
             <div className="text-xs text-terminal text-muted-foreground">
               {currentTime}
