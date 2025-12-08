@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface Stats {
@@ -12,6 +12,45 @@ interface CommunityStats {
   videoCount: number;
 }
 
+interface Quote {
+  text: string;
+  author: string;
+}
+
+const RETRO_QUOTES: Quote[] = [
+  { text: "It's dangerous to go alone! Take this.", author: "Old Man (Zelda)" },
+  { text: "The cake is a lie.", author: "Portal" },
+  { text: "War. War never changes.", author: "Fallout" },
+  { text: "Do a barrel roll!", author: "Peppy (Star Fox 64)" },
+  { text: "Stay awhile and listen.", author: "Deckard Cain (Diablo)" },
+  { text: "Would you kindly?", author: "Atlas (BioShock)" },
+  { text: "I used to be an adventurer like you, then I took an arrow in the knee.", author: "Guard (Skyrim)" },
+  { text: "!?", author: "Snake (Metal Gear Solid)" },
+  { text: "All your base are belong to us.", author: "Zero Wing" },
+  { text: "Hey! Listen!", author: "Navi (Zelda OoT)" },
+  { text: "Finish him!", author: "Mortal Kombat" },
+  { text: "Hadouken!", author: "Ryu (Street Fighter)" },
+  { text: "It's super effective!", author: "Pokémon" },
+  { text: "You died.", author: "Dark Souls" },
+  { text: "Rise and shine, Mr. Freeman.", author: "G-Man (Half-Life 2)" },
+  { text: "A man chooses, a slave obeys.", author: "Andrew Ryan (BioShock)" },
+  { text: "Thank you Mario! But our princess is in another castle!", author: "Toad (Super Mario)" },
+  { text: "GET OVER HERE!", author: "Scorpion (Mortal Kombat)" },
+  { text: "Praise the sun!", author: "Solaire (Dark Souls)" },
+  { text: "Nothing is true, everything is permitted.", author: "Assassin's Creed" },
+  { text: "Boy!", author: "Kratos (God of War)" },
+  { text: "You must construct additional pylons.", author: "StarCraft" },
+  { text: "In Soviet Russia, game plays you!", author: "xXx_N00bSlayer_xXx" },
+  { text: "GG EZ", author: "Every online player ever" },
+  { text: "I need healing!", author: "Genji (Overwatch)" },
+  { text: "The right man in the wrong place can make all the difference in the world.", author: "G-Man (Half-Life 2)" },
+  { text: "Snake? Snake?! SNAAAAKE!", author: "Colonel (Metal Gear Solid)" },
+  { text: "Wind's howling.", author: "Geralt (The Witcher 3)" },
+  { text: "Protocol 3: Protect the Pilot.", author: "BT-7274 (Titanfall 2)" },
+  { text: "I'm Commander Shepard, and this is my favorite store on the Citadel.", author: "Mass Effect" },
+  { text: "You have died of dysentery.", author: "Oregon Trail" },
+];
+
 const SidebarStatsReal = () => {
   const [stats, setStats] = useState<Stats>({
     totalVideos: 0,
@@ -20,6 +59,15 @@ const SidebarStatsReal = () => {
   });
   const [communities, setCommunities] = useState<CommunityStats[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Quote do dia baseada na data atual
+  const dailyQuote = useMemo(() => {
+    const today = new Date();
+    const dayOfYear = Math.floor(
+      (today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24)
+    );
+    return RETRO_QUOTES[dayOfYear % RETRO_QUOTES.length];
+  }, []);
 
   useEffect(() => {
     fetchStats();
@@ -163,16 +211,16 @@ const SidebarStatsReal = () => {
         </div>
       </div>
 
-      {/* Random Quote */}
+      {/* Quote do Dia */}
       <div className="retro-box p-3 bg-card">
         <div className="text-pixel text-xs glow-text mb-2">
           ► QUOTE DO DIA
         </div>
         <div className="text-terminal text-xs italic">
-          "In Soviet Russia, game plays you!"
+          "{dailyQuote.text}"
         </div>
         <div className="text-right text-muted-foreground text-xs mt-1">
-          - xXx_N00bSlayer_xXx
+          - {dailyQuote.author}
         </div>
       </div>
     </aside>
