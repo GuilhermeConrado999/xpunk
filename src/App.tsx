@@ -11,6 +11,7 @@ import Communities from "./pages/Communities";
 import CommunityView from "./pages/CommunityView";
 import Forum from "./pages/Forum";
 import ForumPost from "./pages/ForumPost";
+import ForumCommentThread from "./pages/ForumCommentThread";
 import Upload from "./pages/Upload";
 import NotFound from "./pages/NotFound";
 import ResetPassword from "./pages/ResetPassword";
@@ -36,6 +37,7 @@ const AppContent = () => {
         <Route path="/profile/:userId" element={<Profile />} />
         <Route path="/forum" element={<Forum />} />
         <Route path="/forum/post/:postId" element={<ForumPost />} />
+        <Route path="/forum/post/:postId/comment/:commentId" element={<ForumCommentThread />} />
         <Route path="/auth" element={<AuthPage onAuthSuccess={() => window.location.href = '/'} />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         
