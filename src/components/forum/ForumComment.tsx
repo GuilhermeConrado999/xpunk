@@ -31,6 +31,7 @@ interface ForumCommentProps {
       display_name: string | null;
       avatar_url: string | null;
     };
+    parentUsername?: string | null;
     userVote?: 'up' | 'down' | null;
     replies?: any[];
   };
@@ -47,6 +48,9 @@ export const ForumComment = ({ comment, onReply, level = 0 }: ForumCommentProps)
   const [showReplyBox, setShowReplyBox] = useState(false);
   const [replyContent, setReplyContent] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  
+  // Get parent username for mention
+  const parentUsername = comment.parent_comment_id ? comment.parentUsername : null;
 
   const handleVote = async (voteType: 'up' | 'down') => {
     if (!user) {
@@ -185,10 +189,9 @@ export const ForumComment = ({ comment, onReply, level = 0 }: ForumCommentProps)
   };
 
   const voteColor = currentVote === 'up' ? 'text-retro-cyan' : currentVote === 'down' ? 'text-red-500' : 'text-muted-foreground';
-  const marginLeft = level > 0 ? 'ml-8' : '';
 
   return (
-    <div className={`${marginLeft} border-l-2 border-border/30 pl-4 py-2`}>
+    <div className="border-l-2 border-border/30 pl-4 py-2">
       <div className="flex gap-3">
         <div className="flex flex-col items-center gap-1">
           <Button
@@ -259,6 +262,9 @@ export const ForumComment = ({ comment, onReply, level = 0 }: ForumCommentProps)
           </div>
 
           <p className="text-terminal text-[14px] leading-relaxed">
+            {parentUsername && (
+              <span className="text-retro-cyan font-semibold mr-1">@{parentUsername}</span>
+            )}
             {comment.content}
           </p>
 
@@ -307,9 +313,12 @@ export const ForumComment = ({ comment, onReply, level = 0 }: ForumCommentProps)
               {comment.replies.map((reply) => (
                 <ForumComment
                   key={reply.id}
-                  comment={reply}
+                  comment={{
+                    ...reply,
+                    parentUsername: comment.profiles?.username
+                  }}
                   onReply={onReply}
-                  level={level + 1}
+                  level={0}
                 />
               ))}
             </div>
