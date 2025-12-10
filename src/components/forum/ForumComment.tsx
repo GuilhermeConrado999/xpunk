@@ -258,7 +258,7 @@ export const ForumComment = ({ comment, onReply, level = 0 }: ForumCommentProps)
             )}
           </div>
 
-          <p className="text-terminal text-sm">
+          <p className="text-terminal text-[14px] leading-relaxed">
             {comment.content}
           </p>
 
