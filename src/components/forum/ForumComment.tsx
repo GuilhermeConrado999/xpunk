@@ -37,9 +37,17 @@ interface ForumCommentProps {
   };
   onReply?: (commentId: string) => void;
   level?: number;
+  showAllReplies?: boolean;
+  maxVisibleReplies?: number;
 }
 
-export const ForumComment = ({ comment, onReply, level = 0 }: ForumCommentProps) => {
+export const ForumComment = ({ 
+  comment, 
+  onReply, 
+  level = 0, 
+  showAllReplies = false,
+  maxVisibleReplies = 3 
+}: ForumCommentProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -51,6 +59,14 @@ export const ForumComment = ({ comment, onReply, level = 0 }: ForumCommentProps)
   
   // Get parent username for mention
   const parentUsername = comment.parent_comment_id ? comment.parentUsername : null;
+  
+  // Calculate replies to show
+  const totalReplies = comment.replies?.length || 0;
+  const hasMoreReplies = !showAllReplies && totalReplies > maxVisibleReplies;
+  const visibleReplies = showAllReplies 
+    ? comment.replies 
+    : comment.replies?.slice(0, maxVisibleReplies);
+  const hiddenRepliesCount = totalReplies - maxVisibleReplies;
 
   const handleVote = async (voteType: 'up' | 'down') => {
     if (!user) {
@@ -308,9 +324,9 @@ export const ForumComment = ({ comment, onReply, level = 0 }: ForumCommentProps)
             </div>
           )}
 
-          {comment.replies && comment.replies.length > 0 && (
+          {visibleReplies && visibleReplies.length > 0 && (
             <div className="space-y-2 mt-4">
-              {comment.replies.map((reply) => (
+              {visibleReplies.map((reply) => (
                 <ForumComment
                   key={reply.id}
                   comment={{
@@ -319,8 +335,22 @@ export const ForumComment = ({ comment, onReply, level = 0 }: ForumCommentProps)
                   }}
                   onReply={onReply}
                   level={0}
+                  showAllReplies={showAllReplies}
+                  maxVisibleReplies={maxVisibleReplies}
                 />
               ))}
+              
+              {hasMoreReplies && hiddenRepliesCount > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigate(`/forum/post/${comment.post_id}/comment/${comment.id}`)}
+                  className="text-retro-cyan hover:text-retro-cyan/80 text-xs pl-4 mt-2"
+                >
+                  <MessageCircle className="h-3 w-3 mr-1" />
+                  Ver mais {hiddenRepliesCount} {hiddenRepliesCount === 1 ? 'resposta' : 'respostas'}
+                </Button>
+              )}
             </div>
           )}
         </div>
