@@ -13,6 +13,7 @@ import Forum from "./pages/Forum";
 import ForumPost from "./pages/ForumPost";
 import ForumCommentThread from "./pages/ForumCommentThread";
 import Upload from "./pages/Upload";
+import Updates from "./pages/Updates";
 import NotFound from "./pages/NotFound";
 import ResetPassword from "./pages/ResetPassword";
 
@@ -34,6 +35,7 @@ const AppContent = () => {
       <Routes>
         {/* Public routes - accessible without login */}
         <Route path="/" element={<Index />} />
+        <Route path="/updates" element={<Updates />} />
         <Route path="/profile/:userId" element={<Profile />} />
         <Route path="/forum" element={<Forum />} />
         <Route path="/forum/post/:postId" element={<ForumPost />} />
