@@ -6,8 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Loader2, X, Reply, MoreVertical } from 'lucide-react';
+import { Loader2, X, Reply, MoreVertical, Image, Mic, Square, Play, Pause } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { toast } from 'sonner';
 
 interface Message {
   id: string;
@@ -18,6 +19,8 @@ interface Message {
   created_at: string;
   deleted_for?: string[];
   reply_to?: string | null;
+  media_url?: string | null;
+  media_type?: string | null;
 }
 
 interface ChatDialogProps {
@@ -41,17 +44,23 @@ const ChatDialog: React.FC<ChatDialogProps> = ({
   const [loading, setLoading] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const [uploadingMedia, setUploadingMedia] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const channelRef = useRef<any>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (open && user) {
       fetchMessages();
       markMessagesAsRead();
 
-      // Canal único para mensagens - sem filtros complexos
       const messagesChannel = supabase
         .channel(`chat-messages-${user.id}-${friendId}`)
         .on(
@@ -62,37 +71,28 @@ const ChatDialog: React.FC<ChatDialogProps> = ({
             table: 'messages'
           },
           (payload) => {
-            console.log('Nova mensagem recebida:', payload);
             const newMessage = payload.new as Message;
             
-            // Verificar se a mensagem é relevante para esta conversa
             const isRelevant = 
               (newMessage.sender_id === user.id && newMessage.receiver_id === friendId) ||
               (newMessage.sender_id === friendId && newMessage.receiver_id === user.id);
             
             if (isRelevant && !newMessage.deleted_for?.includes(user.id)) {
               setMessages((prev) => {
-                // Evitar duplicatas
                 if (prev.some(m => m.id === newMessage.id)) {
-                  console.log('Mensagem duplicada ignorada');
                   return prev;
                 }
-                console.log('Adicionando nova mensagem ao estado');
                 return [...prev, newMessage];
               });
               
-              // Marcar como lida se foi enviada pelo amigo
               if (newMessage.sender_id === friendId) {
                 markMessagesAsRead();
               }
             }
           }
         )
-        .subscribe((status) => {
-          console.log('Status do canal de mensagens:', status);
-        });
+        .subscribe();
 
-      // Canal separado para presença (digitando)
       const presenceChannel = supabase
         .channel(`chat-presence-${user.id}-${friendId}`)
         .on('presence', { event: 'sync' }, () => {
@@ -102,7 +102,6 @@ const ChatDialog: React.FC<ChatDialogProps> = ({
           setIsTyping(friendPresence?.typing || false);
         })
         .subscribe(async (status) => {
-          console.log('Status do canal de presença:', status);
           if (status === 'SUBSCRIBED') {
             await presenceChannel.track({
               user_id: user.id,
@@ -115,7 +114,6 @@ const ChatDialog: React.FC<ChatDialogProps> = ({
       channelRef.current = presenceChannel;
 
       return () => {
-        console.log('Limpando canais...');
         if (typingTimeoutRef.current) {
           clearTimeout(typingTimeoutRef.current);
         }
@@ -126,7 +124,6 @@ const ChatDialog: React.FC<ChatDialogProps> = ({
   }, [open, user, friendId]);
 
   useEffect(() => {
-    // Auto scroll para o fim quando novas mensagens chegam
     if (scrollRef.current) {
       const scrollElement = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]');
       if (scrollElement) {
@@ -145,7 +142,6 @@ const ChatDialog: React.FC<ChatDialogProps> = ({
       .order('created_at', { ascending: true });
 
     if (!error && data) {
-      // Filtrar mensagens que foram deletadas pelo usuário
       const filteredMessages = data.filter(msg => {
         const deletedFor = msg.deleted_for || [];
         return !deletedFor.includes(user.id);
@@ -178,13 +174,10 @@ const ChatDialog: React.FC<ChatDialogProps> = ({
   const deleteAllMessagesForMe = async () => {
     if (!user) return;
 
-    // Pegar todos os IDs das mensagens atuais
     const messageIds = messages.map(m => m.id);
     
     if (messageIds.length === 0) return;
 
-    // Atualizar todas as mensagens de uma vez usando RPC ou update direto
-    // Para cada mensagem, adicionar user.id ao array deleted_for se ainda não estiver lá
     for (const messageId of messageIds) {
       const { data: currentMessage } = await supabase
         .from('messages')
@@ -205,7 +198,6 @@ const ChatDialog: React.FC<ChatDialogProps> = ({
       }
     }
 
-    // Limpar todas as mensagens localmente
     setMessages([]);
   };
 
@@ -223,19 +215,16 @@ const ChatDialog: React.FC<ChatDialogProps> = ({
   const handleTyping = async () => {
     if (!channelRef.current || !user) return;
 
-    // Limpar timeout anterior
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
     }
 
-    // Notificar que está digitando
     await channelRef.current.track({
       user_id: user.id,
       typing: true,
       online_at: new Date().toISOString()
     });
 
-    // Após 2 segundos sem digitar, marcar como não digitando
     typingTimeoutRef.current = setTimeout(async () => {
       await channelRef.current?.track({
         user_id: user.id,
@@ -245,12 +234,157 @@ const ChatDialog: React.FC<ChatDialogProps> = ({
     }, 2000);
   };
 
+  const uploadMedia = async (file: File): Promise<{ url: string; type: string } | null> => {
+    if (!user) return null;
+
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+    
+    const { error: uploadError } = await supabase.storage
+      .from('chat-media')
+      .upload(fileName, file);
+
+    if (uploadError) {
+      console.error('Upload error:', uploadError);
+      toast.error('Erro ao enviar arquivo');
+      return null;
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('chat-media')
+      .getPublicUrl(fileName);
+
+    let mediaType = 'file';
+    if (file.type.startsWith('image/')) {
+      mediaType = 'image';
+    } else if (file.type.startsWith('video/')) {
+      mediaType = 'video';
+    } else if (file.type.startsWith('audio/')) {
+      mediaType = 'audio';
+    }
+
+    return { url: publicUrl, type: mediaType };
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    // Validate file size (max 50MB)
+    if (file.size > 50 * 1024 * 1024) {
+      toast.error('Arquivo muito grande (máximo 50MB)');
+      return;
+    }
+
+    setUploadingMedia(true);
+
+    const mediaResult = await uploadMedia(file);
+    if (mediaResult) {
+      await sendMediaMessage(mediaResult.url, mediaResult.type);
+    }
+
+    setUploadingMedia(false);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          audioChunksRef.current.push(e.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        stream.getTracks().forEach(track => track.stop());
+        
+        setUploadingMedia(true);
+        const file = new File([audioBlob], `audio_${Date.now()}.webm`, { type: 'audio/webm' });
+        const mediaResult = await uploadMedia(file);
+        
+        if (mediaResult) {
+          await sendMediaMessage(mediaResult.url, 'audio');
+        }
+        
+        setUploadingMedia(false);
+        setRecordingTime(0);
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+
+      recordingIntervalRef.current = setInterval(() => {
+        setRecordingTime(prev => prev + 1);
+      }, 1000);
+
+    } catch (error) {
+      console.error('Error starting recording:', error);
+      toast.error('Erro ao acessar microfone');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      if (recordingIntervalRef.current) {
+        clearInterval(recordingIntervalRef.current);
+      }
+    }
+  };
+
+  const cancelRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+      setIsRecording(false);
+      setRecordingTime(0);
+      audioChunksRef.current = [];
+      if (recordingIntervalRef.current) {
+        clearInterval(recordingIntervalRef.current);
+      }
+    }
+  };
+
+  const sendMediaMessage = async (mediaUrl: string, mediaType: string) => {
+    if (!user) return;
+
+    if (channelRef.current) {
+      await channelRef.current.track({
+        user_id: user.id,
+        typing: false,
+        online_at: new Date().toISOString()
+      });
+    }
+
+    const { error } = await supabase
+      .from('messages')
+      .insert({
+        sender_id: user.id,
+        receiver_id: friendId,
+        content: mediaType === 'audio' ? '🎤 Mensagem de voz' : mediaType === 'image' ? '📷 Imagem' : '🎬 Vídeo',
+        media_url: mediaUrl,
+        media_type: mediaType,
+        reply_to: replyingTo?.id || null
+      });
+
+    if (!error) {
+      setReplyingTo(null);
+    }
+  };
+
   const sendMessage = async () => {
     if (!newMessage.trim() || !user || loading) return;
 
     setLoading(true);
 
-    // Parar de mostrar "digitando" antes de enviar
     if (channelRef.current) {
       await channelRef.current.track({
         user_id: user.id,
@@ -275,7 +409,6 @@ const ChatDialog: React.FC<ChatDialogProps> = ({
 
     setLoading(false);
     
-    // Manter foco no input
     setTimeout(() => {
       inputRef.current?.focus();
     }, 0);
@@ -284,6 +417,12 @@ const ChatDialog: React.FC<ChatDialogProps> = ({
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const formatRecordingTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   return (
@@ -354,7 +493,32 @@ const ChatDialog: React.FC<ChatDialogProps> = ({
                       </div>
                     )}
                     
-                    <p className="text-mono text-sm">{message.content}</p>
+                    {/* Media content */}
+                    {message.media_url && message.media_type === 'image' && (
+                      <img 
+                        src={message.media_url} 
+                        alt="Imagem" 
+                        className="max-w-full rounded-lg mb-2 cursor-pointer hover:opacity-90 transition-opacity"
+                        onClick={() => window.open(message.media_url!, '_blank')}
+                      />
+                    )}
+                    
+                    {message.media_url && message.media_type === 'video' && (
+                      <video 
+                        src={message.media_url} 
+                        controls 
+                        className="max-w-full rounded-lg mb-2"
+                      />
+                    )}
+                    
+                    {message.media_url && message.media_type === 'audio' && (
+                      <AudioPlayer src={message.media_url} />
+                    )}
+                    
+                    {/* Text content - hide default text for media messages */}
+                    {(!message.media_url || (message.media_type !== 'image' && message.media_type !== 'video' && message.media_type !== 'audio')) && (
+                      <p className="text-mono text-sm">{message.content}</p>
+                    )}
                     
                     <div className="flex items-center justify-between gap-2 mt-1">
                       <p className="text-xs text-muted-foreground">
@@ -411,31 +575,178 @@ const ChatDialog: React.FC<ChatDialogProps> = ({
             </div>
           )}
           
-          <div className="flex gap-2 p-4">
-            <Input
-              ref={inputRef}
-              placeholder="Digite sua mensagem..."
-              value={newMessage}
-              onChange={(e) => {
-                setNewMessage(e.target.value);
-                handleTyping();
-              }}
-              onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-              className="input-retro"
-              disabled={loading}
-              autoFocus
-            />
-            <Button
-              onClick={sendMessage}
-              className="btn-retro"
-              disabled={loading || !newMessage.trim()}
-            >
-              ENVIAR
-            </Button>
-          </div>
+          {/* Recording UI */}
+          {isRecording ? (
+            <div className="flex items-center gap-3 p-4 bg-red-500/10">
+              <div className="flex items-center gap-2 flex-1">
+                <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
+                <span className="text-mono text-red-500 font-semibold">
+                  {formatRecordingTime(recordingTime)}
+                </span>
+                <span className="text-muted-foreground text-sm">Gravando...</span>
+              </div>
+              <Button
+                onClick={cancelRecording}
+                variant="ghost"
+                size="icon"
+                className="hover:bg-red-500/20 text-red-500"
+              >
+                <X className="w-5 h-5" />
+              </Button>
+              <Button
+                onClick={stopRecording}
+                className="bg-red-500 hover:bg-red-600 text-white"
+                size="icon"
+              >
+                <Square className="w-4 h-4" />
+              </Button>
+            </div>
+          ) : (
+            <div className="flex gap-2 p-4">
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileSelect}
+                accept="image/*,video/*"
+                className="hidden"
+              />
+              
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingMedia || loading}
+                className="hover:bg-retro-cyan/20"
+                title="Enviar imagem ou vídeo"
+              >
+                {uploadingMedia ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Image className="w-5 h-5" />
+                )}
+              </Button>
+              
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={startRecording}
+                disabled={uploadingMedia || loading}
+                className="hover:bg-retro-cyan/20"
+                title="Gravar mensagem de voz"
+              >
+                <Mic className="w-5 h-5" />
+              </Button>
+              
+              <Input
+                ref={inputRef}
+                placeholder="Digite sua mensagem..."
+                value={newMessage}
+                onChange={(e) => {
+                  setNewMessage(e.target.value);
+                  handleTyping();
+                }}
+                onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                className="input-retro"
+                disabled={loading || uploadingMedia}
+                autoFocus
+              />
+              <Button
+                onClick={sendMessage}
+                className="btn-retro"
+                disabled={loading || !newMessage.trim() || uploadingMedia}
+              >
+                ENVIAR
+              </Button>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
+  );
+};
+
+// Audio Player Component
+const AudioPlayer: React.FC<{ src: string }> = ({ src }) => {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const audioRef = useRef<HTMLAudioElement>(null);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
+    const handleLoadedMetadata = () => setDuration(audio.duration);
+    const handleEnded = () => setIsPlaying(false);
+
+    audio.addEventListener('timeupdate', handleTimeUpdate);
+    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+    audio.addEventListener('ended', handleEnded);
+
+    return () => {
+      audio.removeEventListener('timeupdate', handleTimeUpdate);
+      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      audio.removeEventListener('ended', handleEnded);
+    };
+  }, []);
+
+  const togglePlay = () => {
+    if (audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.pause();
+      } else {
+        audioRef.current.play();
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
+
+  const formatTime = (time: number) => {
+    if (isNaN(time)) return '0:00';
+    const mins = Math.floor(time / 60);
+    const secs = Math.floor(time % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const time = parseFloat(e.target.value);
+    if (audioRef.current) {
+      audioRef.current.currentTime = time;
+      setCurrentTime(time);
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-3 p-2 bg-background/30 rounded-lg min-w-[200px]">
+      <audio ref={audioRef} src={src} preload="metadata" />
+      
+      <button
+        onClick={togglePlay}
+        className="w-8 h-8 flex items-center justify-center rounded-full bg-retro-cyan/30 hover:bg-retro-cyan/50 transition-colors"
+      >
+        {isPlaying ? (
+          <Pause className="w-4 h-4" />
+        ) : (
+          <Play className="w-4 h-4 ml-0.5" />
+        )}
+      </button>
+      
+      <div className="flex-1 flex flex-col gap-1">
+        <input
+          type="range"
+          min={0}
+          max={duration || 0}
+          value={currentTime}
+          onChange={handleSeek}
+          className="w-full h-1 bg-muted rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-retro-cyan"
+        />
+        <div className="flex justify-between text-xs text-muted-foreground">
+          <span>{formatTime(currentTime)}</span>
+          <span>{formatTime(duration)}</span>
+        </div>
+      </div>
+    </div>
   );
 };
 
