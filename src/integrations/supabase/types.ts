@@ -309,6 +309,8 @@ export type Database = {
           created_at: string
           deleted_for: string[] | null
           id: string
+          media_type: string | null
+          media_url: string | null
           read: boolean
           receiver_id: string
           reply_to: string | null
@@ -319,6 +321,8 @@ export type Database = {
           created_at?: string
           deleted_for?: string[] | null
           id?: string
+          media_type?: string | null
+          media_url?: string | null
           read?: boolean
           receiver_id: string
           reply_to?: string | null
@@ -329,6 +333,8 @@ export type Database = {
           created_at?: string
           deleted_for?: string[] | null
           id?: string
+          media_type?: string | null
+          media_url?: string | null
           read?: boolean
           receiver_id?: string
           reply_to?: string | null
