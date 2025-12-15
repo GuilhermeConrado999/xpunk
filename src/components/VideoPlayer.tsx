@@ -5,7 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-import { Download, Star, MessageSquare, Send } from 'lucide-react';
+import { Download, Star, MessageSquare, Send, Trash2, Pencil, X, Check } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { useNavigate } from 'react-router-dom';
@@ -56,6 +56,8 @@ const VideoPlayer = ({ video, open, onOpenChange }: VideoPlayerProps) => {
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
   const [loadingComment, setLoadingComment] = useState(false);
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editingContent, setEditingContent] = useState('');
 
   useEffect(() => {
     if (video && open) {
@@ -212,6 +214,56 @@ const VideoPlayer = ({ video, open, onOpenChange }: VideoPlayerProps) => {
     }
   };
 
+  const handleDeleteComment = async (commentId: string) => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('comments')
+        .delete()
+        .eq('id', commentId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      toast.success('Comentário deletado!');
+      fetchVideoData();
+    } catch (error: any) {
+      toast.error('Erro ao deletar: ' + error.message);
+    }
+  };
+
+  const handleEditComment = async (commentId: string) => {
+    if (!user || !editingContent.trim()) return;
+
+    try {
+      const { error } = await supabase
+        .from('comments')
+        .update({ content: editingContent })
+        .eq('id', commentId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      setEditingCommentId(null);
+      setEditingContent('');
+      toast.success('Comentário editado!');
+      fetchVideoData();
+    } catch (error: any) {
+      toast.error('Erro ao editar: ' + error.message);
+    }
+  };
+
+  const startEditing = (comment: Comment) => {
+    setEditingCommentId(comment.id);
+    setEditingContent(comment.content);
+  };
+
+  const cancelEditing = () => {
+    setEditingCommentId(null);
+    setEditingContent('');
+  };
+
   const handleDownload = () => {
     if (video?.video_url) {
       window.open(video.video_url, '_blank');
@@ -359,42 +411,96 @@ const VideoPlayer = ({ video, open, onOpenChange }: VideoPlayerProps) => {
                   <div key={comment.id} className="retro-box p-3 bg-card">
                     <div className="flex items-start space-x-3">
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Avatar 
-                            className="w-8 h-8 cursor-pointer"
-                            onClick={() => {
-                              if (comment.profiles?.user_id) {
-                                onOpenChange(false);
-                                navigate(`/profile/${comment.profiles.user_id}`);
-                              }
-                            }}
-                          >
-                            <AvatarImage
-                              src={comment.profiles?.avatar_url || undefined}
-                              alt={comment.profiles?.username ?? 'Avatar'}
-                            />
-                            <AvatarFallback className="bg-muted text-mono text-sm">
-                              {comment.profiles?.username?.charAt(0).toUpperCase() ?? 'U'}
-                            </AvatarFallback>
-                          </Avatar>
-                          <p 
-                            className="text-mono text-sm font-bold cursor-pointer hover:text-retro-cyan transition-colors"
-                            onClick={() => {
-                              if (comment.profiles?.user_id) {
-                                onOpenChange(false);
-                                navigate(`/profile/${comment.profiles.user_id}`);
-                              }
-                            }}
-                          >
-                            {comment.profiles?.username ?? 'Usuário'}
-                          </p>
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center gap-2">
+                            <Avatar 
+                              className="w-8 h-8 cursor-pointer"
+                              onClick={() => {
+                                if (comment.profiles?.user_id) {
+                                  onOpenChange(false);
+                                  navigate(`/profile/${comment.profiles.user_id}`);
+                                }
+                              }}
+                            >
+                              <AvatarImage
+                                src={comment.profiles?.avatar_url || undefined}
+                                alt={comment.profiles?.username ?? 'Avatar'}
+                              />
+                              <AvatarFallback className="bg-muted text-mono text-sm">
+                                {comment.profiles?.username?.charAt(0).toUpperCase() ?? 'U'}
+                              </AvatarFallback>
+                            </Avatar>
+                            <p 
+                              className="text-mono text-sm font-bold cursor-pointer hover:text-retro-cyan transition-colors"
+                              onClick={() => {
+                                if (comment.profiles?.user_id) {
+                                  onOpenChange(false);
+                                  navigate(`/profile/${comment.profiles.user_id}`);
+                                }
+                              }}
+                            >
+                              {comment.profiles?.username ?? 'Usuário'}
+                            </p>
+                          </div>
+                          
+                          {user?.id === comment.user_id && editingCommentId !== comment.id && (
+                            <div className="flex gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-muted-foreground hover:text-terminal"
+                                onClick={() => startEditing(comment)}
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                                onClick={() => handleDeleteComment(comment.id)}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          )}
                         </div>
                         <p className="text-xs text-muted-foreground text-terminal">
                           {formatDate(comment.created_at)}
                         </p>
-                        <p className="text-mono text-sm mt-1">
-                          {comment.content}
-                        </p>
+                        
+                        {editingCommentId === comment.id ? (
+                          <div className="mt-2 space-y-2">
+                            <Textarea
+                              value={editingContent}
+                              onChange={(e) => setEditingContent(e.target.value)}
+                              className="text-mono resize-none text-sm"
+                              rows={2}
+                            />
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                className="btn-retro h-7 text-xs"
+                                onClick={() => handleEditComment(comment.id)}
+                              >
+                                <Check className="h-3 w-3 mr-1" />
+                                Salvar
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 text-xs"
+                                onClick={cancelEditing}
+                              >
+                                <X className="h-3 w-3 mr-1" />
+                                Cancelar
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-mono text-sm mt-1">
+                            {comment.content}
+                          </p>
+                        )}
                       </div>
                     </div>
                   </div>
