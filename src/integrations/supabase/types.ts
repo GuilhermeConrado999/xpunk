@@ -384,6 +384,7 @@ export type Database = {
           bio: string | null
           created_at: string
           display_name: string | null
+          favorite_community_id: string | null
           id: string
           updated_at: string
           user_id: string
@@ -395,6 +396,7 @@ export type Database = {
           bio?: string | null
           created_at?: string
           display_name?: string | null
+          favorite_community_id?: string | null
           id?: string
           updated_at?: string
           user_id: string
@@ -406,12 +408,21 @@ export type Database = {
           bio?: string | null
           created_at?: string
           display_name?: string | null
+          favorite_community_id?: string | null
           id?: string
           updated_at?: string
           user_id?: string
           username?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_favorite_community_id_fkey"
+            columns: ["favorite_community_id"]
+            isOneToOne: false
+            referencedRelation: "communities"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ratings: {
         Row: {
