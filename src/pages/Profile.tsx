@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { useParams } from 'react-router-dom';
@@ -27,6 +27,16 @@ interface Profile {
   avatar_url: string;
   background_url: string | null;
   created_at: string;
+  favorite_community_id: string | null;
+}
+
+interface Community {
+  id: string;
+  name: string;
+  emoji: string;
+  color: string;
+  description: string | null;
+  thumbnail_url: string | null;
 }
 
 interface UserRole {
@@ -80,9 +90,16 @@ const Profile = () => {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [uploadingBackground, setUploadingBackground] = useState(false);
   const [userRoles, setUserRoles] = useState<UserRole[]>([]);
+  const [communities, setCommunities] = useState<Community[]>([]);
+  const [favoriteCommunity, setFavoriteCommunity] = useState<Community | null>(null);
+  const [selectedFavoriteCommunityId, setSelectedFavoriteCommunityId] = useState<string | null>(null);
 
   const isOwnProfile = !userId || userId === user?.id;
   const profileUserId = userId || user?.id;
+
+  useEffect(() => {
+    fetchCommunities();
+  }, []);
 
   useEffect(() => {
     if (profileUserId) {
@@ -114,6 +131,17 @@ const Profile = () => {
     return () => window.removeEventListener('focus', handleFocus);
   }, [profileUserId, isOwnProfile]);
 
+  const fetchCommunities = async () => {
+    const { data } = await supabase
+      .from('communities')
+      .select('id, name, emoji, color, description, thumbnail_url')
+      .order('name');
+    
+    if (data) {
+      setCommunities(data);
+    }
+  };
+
   const fetchProfile = async () => {
     if (!profileUserId) return;
 
@@ -133,6 +161,22 @@ const Profile = () => {
           bio: data.bio || '',
           username: data.username || ''
         });
+        setSelectedFavoriteCommunityId(data.favorite_community_id);
+      }
+      
+      // Fetch favorite community details
+      if (data.favorite_community_id) {
+        const { data: communityData } = await supabase
+          .from('communities')
+          .select('id, name, emoji, color, description, thumbnail_url')
+          .eq('id', data.favorite_community_id)
+          .single();
+        
+        if (communityData) {
+          setFavoriteCommunity(communityData);
+        }
+      } else {
+        setFavoriteCommunity(null);
       }
     }
     setLoading(false);
@@ -430,7 +474,8 @@ const Profile = () => {
       .update({
         display_name: editData.display_name,
         bio: editData.bio,
-        username: editData.username
+        username: editData.username,
+        favorite_community_id: selectedFavoriteCommunityId || null
       })
       .eq('user_id', user.id);
 
@@ -728,6 +773,33 @@ const Profile = () => {
                   </p>
                 </div>
               </div>
+
+              {/* Favorite Community Selector */}
+              <div className="space-y-2">
+                <Label className="text-mono text-terminal">COMUNIDADE FAVORITA</Label>
+                <Select
+                  value={selectedFavoriteCommunityId || "none"}
+                  onValueChange={(value) => setSelectedFavoriteCommunityId(value === "none" ? null : value)}
+                >
+                  <SelectTrigger className="bg-background border-border">
+                    <SelectValue placeholder="Selecione sua comunidade favorita" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-card border-border z-50">
+                    <SelectItem value="none">Nenhuma</SelectItem>
+                    {communities.map((community) => (
+                      <SelectItem key={community.id} value={community.id}>
+                        <span className="flex items-center gap-2">
+                          <span>{community.emoji}</span>
+                          <span>{community.name}</span>
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground text-mono">
+                  Escolha uma comunidade para exibir no seu perfil
+                </p>
+              </div>
               
               <div className="flex gap-2">
                 <Button onClick={updateProfile} className="btn-retro">
@@ -800,6 +872,66 @@ const Profile = () => {
                 )}
               </CardContent>
             </Card>
+
+            {/* Favorite Community Section */}
+            {favoriteCommunity && (
+              <Card className="retro-box bg-card overflow-hidden">
+                <CardHeader>
+                  <CardTitle className="text-pixel text-retro-cyan">COMUNIDADE FAVORITA</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div 
+                    className="p-4 rounded-lg border-2 flex items-center gap-4 cursor-pointer hover:opacity-80 transition-opacity"
+                    style={{ 
+                      borderColor: favoriteCommunity.color,
+                      background: `linear-gradient(135deg, ${favoriteCommunity.color}20 0%, transparent 100%)`
+                    }}
+                    onClick={() => window.location.href = `/community/${favoriteCommunity.id}`}
+                  >
+                    {favoriteCommunity.thumbnail_url ? (
+                      <img 
+                        src={favoriteCommunity.thumbnail_url} 
+                        alt={favoriteCommunity.name}
+                        className="w-16 h-16 rounded-lg object-cover border-2"
+                        style={{ borderColor: favoriteCommunity.color }}
+                      />
+                    ) : (
+                      <div 
+                        className="w-16 h-16 rounded-lg flex items-center justify-center text-3xl border-2"
+                        style={{ 
+                          backgroundColor: `${favoriteCommunity.color}30`,
+                          borderColor: favoriteCommunity.color
+                        }}
+                      >
+                        {favoriteCommunity.emoji}
+                      </div>
+                    )}
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xl">{favoriteCommunity.emoji}</span>
+                        <h3 className="text-pixel text-lg" style={{ color: favoriteCommunity.color }}>
+                          {favoriteCommunity.name}
+                        </h3>
+                      </div>
+                      {favoriteCommunity.description && (
+                        <p className="text-mono text-sm text-muted-foreground line-clamp-2 mt-1">
+                          {favoriteCommunity.description}
+                        </p>
+                      )}
+                    </div>
+                    <Badge 
+                      className="text-mono"
+                      style={{ 
+                        backgroundColor: favoriteCommunity.color,
+                        color: '#fff'
+                      }}
+                    >
+                      ❤️ FAVORITA
+                    </Badge>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Achievements Section */}
             <Card className="retro-box bg-card">
