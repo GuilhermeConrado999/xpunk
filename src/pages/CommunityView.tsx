@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import RetroHeader from '@/components/RetroHeader';
 import VideoCardReal from '@/components/VideoCardReal';
 import CommunityMembersList from '@/components/CommunityMembersList';
+import CommunityChatPanel from '@/components/CommunityChatPanel';
 import { Button } from '@/components/ui/button';
 import { Users, Video, ArrowLeft, UserPlus, UserMinus, Settings } from 'lucide-react';
 import CommunityEditDialog from '@/components/CommunityEditDialog';
@@ -352,6 +353,13 @@ const CommunityView = () => {
         open={editDialogOpen}
         onOpenChange={setEditDialogOpen}
         onCommunityUpdated={fetchCommunityData}
+      />
+
+      {/* Community Chat */}
+      <CommunityChatPanel
+        communityId={community.id}
+        communityName={community.name}
+        isMember={community.is_member || false}
       />
     </div>
   );
