@@ -15,6 +15,34 @@ interface Update {
 
 const updates: Update[] = [
   {
+    id: '0',
+    date: '06/01/2025',
+    version: '1.7.0',
+    title: 'Chat em Tempo Real nas Comunidades',
+    type: 'feature',
+    description: 'Agora cada comunidade tem seu próprio chat ao vivo estilo Discord!',
+    items: [
+      'Chat em tempo real para membros',
+      'Mensagens com avatares dos usuários',
+      'Botão flutuante para abrir o chat',
+      'Deletar suas próprias mensagens',
+      'Atualização automática de novas mensagens'
+    ]
+  },
+  {
+    id: '0.5',
+    date: '06/01/2025',
+    version: '1.6.0',
+    title: 'Comunidade Favorita no Perfil',
+    type: 'feature',
+    description: 'Escolha sua comunidade favorita e exiba no seu perfil como na Steam!',
+    items: [
+      'Seletor de comunidade favorita',
+      'Card destacado no perfil',
+      'Link direto para a comunidade'
+    ]
+  },
+  {
     id: '1',
     date: '11/12/2024',
     version: '1.5.0',
