@@ -874,12 +874,12 @@ const Profile = () => {
             </Card>
 
             {/* Favorite Community Section */}
-            {favoriteCommunity && (
-              <Card className="retro-box bg-card overflow-hidden">
-                <CardHeader>
-                  <CardTitle className="text-pixel text-retro-cyan">COMUNIDADE FAVORITA</CardTitle>
-                </CardHeader>
-                <CardContent>
+            <Card className="retro-box bg-card overflow-hidden">
+              <CardHeader>
+                <CardTitle className="text-pixel text-retro-cyan">COMUNIDADE FAVORITA</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {favoriteCommunity ? (
                   <div 
                     className="p-4 rounded-lg border-2 flex items-center gap-4 cursor-pointer hover:opacity-80 transition-opacity"
                     style={{ 
@@ -929,9 +929,26 @@ const Profile = () => {
                       ❤️ FAVORITA
                     </Badge>
                   </div>
-                </CardContent>
-              </Card>
-            )}
+                ) : (
+                  <div className="text-center py-6 text-mono text-muted-foreground">
+                    {isOwnProfile ? (
+                      <>
+                        <p className="mb-3">Nenhuma comunidade favorita selecionada.</p>
+                        <Button 
+                          onClick={() => setIsEditing(true)}
+                          variant="outline"
+                          className="btn-retro"
+                        >
+                          ESCOLHER COMUNIDADE
+                        </Button>
+                      </>
+                    ) : (
+                      <p>Este usuário não selecionou uma comunidade favorita.</p>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
             {/* Achievements Section */}
             <Card className="retro-box bg-card">
