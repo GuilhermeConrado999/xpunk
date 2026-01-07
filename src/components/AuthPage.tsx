@@ -125,82 +125,52 @@ const AuthPage = ({
     backgroundPosition: 'center',
     backgroundRepeat: 'no-repeat'
   }}>
-      {/* Dark Overlay */}
-      <div className="absolute inset-0 bg-black/60"></div>
+      {/* Heavy Dark Overlay for Underground Feel */}
+      <div className="absolute inset-0 bg-black/85"></div>
       
-      {/* Background Effects */}
-      <div className="absolute inset-0 bg-gradient-to-br from-retro-purple/30 via-transparent to-retro-cyan/30"></div>
-      <div className="scanlines absolute inset-0 pointer-events-none"></div>
+      {/* Subtle Vignette Effect */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(0,0,0,0.8)_100%)]"></div>
       
-      {/* Hero Text - Left Side */}
-      <div className="absolute left-8 top-1/2 -translate-y-1/2 z-10 hidden lg:block max-w-md">
-        <div className="text-left space-y-4">
-          <h2 className="text-pixel text-4xl glow-text text-retro-cyan animate-[glow_3s_ease-in-out_infinite_alternate]">
+      {/* Minimal Color Accent */}
+      <div className="absolute inset-0 bg-gradient-to-t from-retro-purple/10 via-transparent to-transparent"></div>
+      <div className="scanlines absolute inset-0 pointer-events-none opacity-50"></div>
+      
+      {/* Minimal Side Branding - Desktop Only */}
+      <div className="absolute left-8 top-1/2 -translate-y-1/2 z-10 hidden lg:block">
+        <div className="text-left space-y-3 opacity-60">
+          <h2 className="text-pixel text-5xl glow-text text-retro-cyan">
             XPUNK
           </h2>
-          <h3 className="text-terminal text-xl text-retro-pink">
-            O FUTURO É AGORA
-          </h3>
-          <div className="space-y-2 text-mono text-sm text-white/90 leading-relaxed">
-            <p className="border-l-2 border-retro-cyan pl-4">
-              🌐 Entre na matrix dos vídeos underground
-            </p>
-            <p className="border-l-2 border-retro-pink pl-4">
-              🎮 Descubra conteúdo que não existe em lugar nenhum
-            </p>
-            <p className="border-l-2 border-retro-cyan pl-4">
-              💾 Nostalgia pura dos anos 2000
-            </p>
-            <p className="border-l-2 border-retro-pink pl-4">
-              🚀 Comunidade cyberpunk brasileira
-            </p>
-          </div>
-          <div className="text-terminal text-xs text-retro-cyan/70 mt-6">
-            <div className="animate-pulse">
-              ► CONECTANDO AO SERVIDOR...
-            </div>
-            <div className="mt-1">
-              ► STATUS: ONLINE
-            </div>
+          <div className="text-terminal text-xs text-white/40 space-y-1">
+            <p>► UNDERGROUND</p>
+            <p>► SINCE 2006</p>
           </div>
         </div>
       </div>
       
-      {/* Main Auth Container */}
-      <div className="retro-box p-8 w-full max-w-md bg-card/95 backdrop-blur-md relative z-10 animate-fade-in shadow-2xl border border-retro-cyan/30">
-        {/* Mobile Hero Text */}
-        <div className="text-center mb-6 lg:hidden">
-          <div className="text-mono text-xs text-retro-cyan space-y-1">
-            <p>🌐 O futuro dos vídeos underground</p>
-            <p>💾 Nostalgia cyberpunk brasileira</p>
-          </div>
-        </div>
+      {/* Main Auth Container - Darker & Minimal */}
+      <div className="p-8 w-full max-w-md bg-black/80 backdrop-blur-sm relative z-10 border border-white/5">
         
-        {/* Header with Logo */}
+        {/* Minimal Header */}
         <div className="text-center mb-8">
-          <div className="mb-4 relative">
-            <div className="w-16 h-16 mx-auto bg-gradient-to-br from-retro-pink to-retro-cyan rounded-lg flex items-center justify-center mb-4 pixel-border glow-retro">
-              <span className="text-pixel text-2xl text-white">X</span>
-            </div>
-            <h1 className="text-pixel text-3xl glow-text mb-2 animate-[glow_2s_ease-in-out_infinite_alternate]">
-              XPUNK
-            </h1>
-            <div className="text-terminal text-xs text-retro-cyan mb-2">
-              ━━━ SISTEMA DE ACESSO ━━━
-            </div>
+          <div className="w-14 h-14 mx-auto bg-gradient-to-br from-retro-pink/80 to-retro-cyan/80 flex items-center justify-center mb-6">
+            <span className="text-pixel text-xl text-white">X</span>
           </div>
-          <p className="text-mono text-sm text-muted-foreground bg-retro-dark/50 px-4 py-2 rounded border border-retro-cyan/30">
-            {isForgotPassword ? '> RECUPERANDO SENHA...' : isLogin ? '> INICIANDO SESSÃO...' : '> REGISTRANDO NOVO USER...'}
-          </p>
+          <h1 className="text-pixel text-2xl text-white/90 mb-1">
+            XPUNK
+          </h1>
+          <div className="text-terminal text-[10px] text-white/30 tracking-widest">
+            {isForgotPassword ? 'RECUPERAR ACESSO' : isLogin ? 'ENTRAR' : 'CRIAR CONTA'}
+          </div>
         </div>
 
         {isForgotPassword ? (
           /* Password Recovery Form */
-          <form onSubmit={handlePasswordReset} className="space-y-6">
+          <form onSubmit={handlePasswordReset} className="space-y-5">
             <div className="space-y-4">
-              <div className="group">
-                <Label htmlFor="email" className="text-terminal text-sm text-retro-cyan flex items-center gap-2">
-                  <span className="text-retro-pink">{'>'}</span> EMAIL:
+              <div>
+                <Label htmlFor="email" className="text-terminal text-xs text-white/50 uppercase tracking-wider">
+                  Email
                 </Label>
                 <Input 
                   id="email" 
@@ -208,22 +178,19 @@ const AuthPage = ({
                   value={email} 
                   onChange={e => setEmail(e.target.value)} 
                   required 
-                  placeholder="user@cyberpunk.net" 
-                  className="text-mono bg-retro-dark/50 border-retro-cyan/30 focus:border-retro-pink focus:ring-retro-pink/20 transition-all duration-300 bg-zinc-950" 
+                  placeholder="seu@email.com" 
+                  className="text-mono bg-black/50 border-white/10 focus:border-retro-pink/50 focus:ring-0 text-white/90 placeholder:text-white/20" 
                 />
               </div>
-              <p className="text-xs text-muted-foreground text-mono">
-                Digite seu email para receber as instruções de recuperação de senha
-              </p>
             </div>
 
             <Button 
               type="submit" 
               disabled={loading} 
-              className="w-full btn-retro text-lg py-3 bg-gradient-to-r from-retro-pink to-retro-cyan hover:from-retro-cyan hover:to-retro-pink transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-gradient-to-r from-retro-pink/80 to-retro-cyan/80 hover:from-retro-pink hover:to-retro-cyan text-white border-0 py-2.5"
             >
-              <span className="text-pixel">
-                {loading ? '⌛ ENVIANDO...' : '📧 ENVIAR EMAIL DE RECUPERAÇÃO'}
+              <span className="text-mono text-sm uppercase tracking-wider">
+                {loading ? 'Enviando...' : 'Enviar Email'}
               </span>
             </Button>
 
@@ -233,107 +200,98 @@ const AuthPage = ({
                 setIsForgotPassword(false);
                 setEmail('');
               }} 
-              className="w-full text-terminal text-sm hover-retro transition-all duration-300 px-4 py-2 border border-retro-cyan/30 rounded hover:border-retro-pink hover:bg-retro-pink/10"
+              className="w-full text-terminal text-xs text-white/40 hover:text-white/60 transition-colors"
             >
-              <span className="text-retro-cyan">
-                ← Voltar para o login
-              </span>
+              ← Voltar
             </button>
           </form>
         ) : (
-          /* Login/Register Form */
-          <form onSubmit={handleAuth} className="space-y-6">
+          /* Login/Register Form - Minimal & Dark */
+          <form onSubmit={handleAuth} className="space-y-5">
           <div className="space-y-4">
-            <div className="group">
-              <Label htmlFor="email" className="text-terminal text-sm text-retro-cyan flex items-center gap-2">
-                <span className="text-retro-pink">{'>'}</span> EMAIL:
+            <div>
+              <Label htmlFor="email" className="text-terminal text-xs text-white/50 uppercase tracking-wider">
+                Email
               </Label>
-              <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="user@cyberpunk.net" className="text-mono bg-retro-dark/50 border-retro-cyan/30 focus:border-retro-pink focus:ring-retro-pink/20 transition-all duration-300 bg-zinc-950" />
+              <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="seu@email.com" className="text-mono bg-black/50 border-white/10 focus:border-retro-pink/50 focus:ring-0 text-white/90 placeholder:text-white/20" />
             </div>
 
-            {!isLogin && <div className="group animate-fade-in">
-                <Label htmlFor="username" className="text-terminal text-sm text-retro-cyan flex items-center gap-2">
-                  <span className="text-retro-pink">{'>'}</span> USERNAME:
+            {!isLogin && <div className="animate-fade-in">
+                <Label htmlFor="username" className="text-terminal text-xs text-white/50 uppercase tracking-wider">
+                  Username
                 </Label>
-                <Input id="username" value={username} onChange={e => setUsername(e.target.value)} placeholder="xXxCyberGamer2006xXx" className="text-mono bg-retro-dark/50 border-retro-cyan/30 focus:border-retro-pink focus:ring-retro-pink/20 transition-all duration-300 bg-gray-950" />
+                <Input id="username" value={username} onChange={e => setUsername(e.target.value)} placeholder="seu_username" className="text-mono bg-black/50 border-white/10 focus:border-retro-pink/50 focus:ring-0 text-white/90 placeholder:text-white/20" />
               </div>}
 
-            <div className="group">
-              <Label htmlFor="password" className="text-terminal text-sm text-retro-cyan flex items-center gap-2">
-                <span className="text-retro-pink">{'>'}</span> PASSWORD:
+            <div>
+              <Label htmlFor="password" className="text-terminal text-xs text-white/50 uppercase tracking-wider">
+                Senha
               </Label>
-              <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} required placeholder="••••••••••••" className="text-mono bg-retro-dark/50 border-retro-cyan/30 focus:border-retro-pink focus:ring-retro-pink/20 transition-all duration-300 bg-gray-950" />
+              <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} required placeholder="••••••••" className="text-mono bg-black/50 border-white/10 focus:border-retro-pink/50 focus:ring-0 text-white/90 placeholder:text-white/20" />
             </div>
           </div>
 
-          <Button type="submit" disabled={loading} className="w-full btn-retro text-lg py-3 bg-gradient-to-r from-retro-pink to-retro-cyan hover:from-retro-cyan hover:to-retro-pink transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed">
-            <span className="text-pixel">
-              {loading ? '⌛ PROCESSANDO...' : isLogin ? '🚀 ENTRAR NO XPUNK' : '✨ CRIAR CONTA'}
+          <Button type="submit" disabled={loading} className="w-full bg-gradient-to-r from-retro-pink/80 to-retro-cyan/80 hover:from-retro-pink hover:to-retro-cyan text-white border-0 py-2.5">
+            <span className="text-mono text-sm uppercase tracking-wider">
+              {loading ? 'Aguarde...' : isLogin ? 'Entrar' : 'Criar Conta'}
             </span>
           </Button>
 
-          {/* Forgot Password Link - Only show on login */}
+          {/* Forgot Password Link */}
           {isLogin && (
             <button 
               type="button"
               onClick={() => setIsForgotPassword(true)} 
-              className="w-full text-terminal text-xs hover-retro transition-all duration-300 text-retro-cyan hover:text-retro-pink"
+              className="w-full text-terminal text-xs text-white/30 hover:text-white/50 transition-colors"
             >
-            🔐 Esqueceu sua senha?
+              Esqueceu a senha?
             </button>
           )}
 
           {/* Divider */}
-          <div className="relative my-6">
+          <div className="relative my-4">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-retro-cyan/30"></div>
+              <div className="w-full border-t border-white/10"></div>
             </div>
             <div className="relative flex justify-center text-xs">
-              <span className="bg-card px-4 text-mono text-muted-foreground">ou continue com</span>
+              <span className="bg-black/80 px-4 text-white/30">ou</span>
             </div>
           </div>
 
-          {/* Google Login Button */}
+          {/* Google Login Button - Darker Style */}
           <Button 
             type="button"
             onClick={handleGoogleLogin}
             disabled={googleLoading}
-            className="w-full bg-white hover:bg-gray-100 text-gray-900 border border-gray-300 transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 py-3"
+            className="w-full bg-white/10 hover:bg-white/20 text-white/80 border border-white/10 flex items-center justify-center gap-3 py-2.5"
           >
-            <svg className="w-5 h-5" viewBox="0 0 24 24">
-              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+            <svg className="w-4 h-4" viewBox="0 0 24 24">
+              <path fill="#fff" fillOpacity="0.8" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+              <path fill="#fff" fillOpacity="0.6" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+              <path fill="#fff" fillOpacity="0.4" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+              <path fill="#fff" fillOpacity="0.7" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
             </svg>
-            <span className="text-mono font-medium">
-              {googleLoading ? 'Conectando...' : 'Entrar com Google'}
+            <span className="text-mono text-sm">
+              {googleLoading ? 'Conectando...' : 'Google'}
             </span>
           </Button>
         </form>
         )}
 
-        {/* Toggle Login/Register - Only show when not in forgot password mode */}
+        {/* Toggle Login/Register - Minimal */}
         {!isForgotPassword && (
-          <div className="mt-8 text-center">
-            <div className="h-px bg-gradient-to-r from-transparent via-retro-cyan/50 to-transparent mb-4"></div>
-            <button onClick={() => setIsLogin(!isLogin)} className="text-terminal text-sm hover-retro transition-all duration-300 px-4 py-2 border border-retro-cyan/30 rounded hover:border-retro-pink hover:bg-retro-pink/10">
-              <span className="text-retro-cyan">
-                {isLogin ? '📝 Não tem conta? Cadastre-se aqui' : '🔑 Já tem conta? Faça login'}
-              </span>
+          <div className="mt-6 text-center">
+            <button onClick={() => setIsLogin(!isLogin)} className="text-terminal text-xs text-white/40 hover:text-white/60 transition-colors">
+              {isLogin ? 'Criar conta' : 'Já tenho conta'}
             </button>
           </div>
         )}
 
-        {/* Footer */}
-        <div className="mt-8 text-center border-t border-retro-cyan/20 pt-4">
-          <div className="text-xs text-muted-foreground text-mono mb-2">
-            <span className="text-retro-cyan">━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>
+        {/* Minimal Footer */}
+        <div className="mt-8 text-center">
+          <div className="text-[10px] text-white/20 text-mono">
+            © 2006 XPUNK
           </div>
-          <div className="text-xs text-retro-pink text-mono">
-            © 2006 XPUNK - Powered by nostalgia & cyberpunk dreams
-          </div>
-          <div className="text-xs text-retro-cyan text-mono mt-1">🌐 System.Version.2025</div>
         </div>
       </div>
     </div>;
