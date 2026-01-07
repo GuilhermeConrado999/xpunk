@@ -125,31 +125,22 @@ const AuthPage = ({
     backgroundPosition: 'center',
     backgroundRepeat: 'no-repeat'
   }}>
-      {/* Heavy Dark Overlay for Underground Feel */}
-      <div className="absolute inset-0 bg-black/85"></div>
+      {/* Dark Overlay */}
+      <div className="absolute inset-0 bg-black/60"></div>
       
-      {/* Subtle Vignette Effect */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(0,0,0,0.8)_100%)]"></div>
-      
-      {/* Minimal Color Accent */}
-      <div className="absolute inset-0 bg-gradient-to-t from-retro-purple/10 via-transparent to-transparent"></div>
-      <div className="scanlines absolute inset-0 pointer-events-none opacity-50"></div>
+      {/* Background Effects */}
+      <div className="absolute inset-0 bg-gradient-to-br from-retro-purple/30 via-transparent to-retro-cyan/30"></div>
+      <div className="scanlines absolute inset-0 pointer-events-none"></div>
       
       {/* Minimal Side Branding - Desktop Only */}
       <div className="absolute left-8 top-1/2 -translate-y-1/2 z-10 hidden lg:block">
-        <div className="text-left space-y-3 opacity-60">
-          <h2 className="text-pixel text-5xl glow-text text-retro-cyan">
-            XPUNK
-          </h2>
-          <div className="text-terminal text-xs text-white/40 space-y-1">
-            <p>► UNDERGROUND</p>
-            <p>► SINCE 2006</p>
-          </div>
-        </div>
+        <h2 className="text-pixel text-5xl glow-text text-retro-cyan">
+          XPUNK
+        </h2>
       </div>
       
-      {/* Main Auth Container - Darker & Minimal */}
-      <div className="p-8 w-full max-w-md bg-black/80 backdrop-blur-sm relative z-10 border border-white/5">
+      {/* Main Auth Container */}
+      <div className="retro-box p-8 w-full max-w-md bg-card/95 backdrop-blur-md relative z-10 border border-retro-cyan/30">
         
         {/* Minimal Header */}
         <div className="text-center mb-8">
