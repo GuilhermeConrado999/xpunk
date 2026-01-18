@@ -310,7 +310,7 @@ const ForumCommentThread = () => {
                     key={reply.id}
                     comment={reply}
                     onReply={fetchReplies}
-                    level={0}
+                    level={1}
                     showAllReplies={true}
                   />
                 ))}
