@@ -204,161 +204,165 @@ export const ForumComment = ({
     }
   };
 
-  const voteColor = currentVote === 'up' ? 'text-retro-cyan' : currentVote === 'down' ? 'text-red-500' : 'text-muted-foreground';
+  const voteColor =
+    currentVote === 'up'
+      ? 'text-retro-cyan'
+      : currentVote === 'down'
+        ? 'text-red-500'
+        : 'text-muted-foreground';
 
-  // Limitar indentação visual a no máximo 3 níveis
+  // Limitar indentação sem "empurrar" as replies indefinidamente
+  // (a borda/indentação fica só no bloco do comentário, não no container que envolve as replies)
   const maxIndentLevel = 3;
-  const shouldIndent = level < maxIndentLevel;
+  const showIndentOnThisComment = level > 0 && level <= maxIndentLevel;
+  const indentReplies = level < maxIndentLevel;
 
   return (
-    <div className={`py-2 ${shouldIndent ? 'border-l-2 border-border/30 pl-4' : ''}`}>
-      <div className="flex gap-3">
-        <div className="flex flex-col items-center gap-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => handleVote('up')}
-            className={`h-6 w-6 p-0 hover:bg-retro-cyan/20 ${currentVote === 'up' ? 'text-retro-cyan' : 'text-muted-foreground'}`}
-          >
-            <ArrowUp className="h-4 w-4" />
-          </Button>
-          <span className={`text-pixel text-xs font-bold ${voteColor}`}>
-            {voteCount}
-          </span>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => handleVote('down')}
-            className={`h-6 w-6 p-0 hover:bg-red-500/20 ${currentVote === 'down' ? 'text-red-500' : 'text-muted-foreground'}`}
-          >
-            <ArrowDown className="h-4 w-4" />
-          </Button>
-        </div>
-
-        <div className="flex-1 space-y-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-xs text-terminal text-muted-foreground">
-              <Avatar 
-                className="h-5 w-5 cursor-pointer"
-                onClick={() => {
-                  if (comment.user_id) navigate(`/profile/${comment.user_id}`);
-                }}
-              >
-                <AvatarImage src={comment.profiles?.avatar_url || undefined} />
-                <AvatarFallback className="bg-retro-purple text-white text-xs">
-                  {comment.profiles?.username?.charAt(0)?.toUpperCase() || '?'}
-                </AvatarFallback>
-              </Avatar>
-              <span 
-                className="font-semibold cursor-pointer hover:text-retro-cyan transition-colors"
-                onClick={() => {
-                  if (comment.user_id) navigate(`/profile/${comment.user_id}`);
-                }}
-              >
-                u/{comment.profiles?.username}
-              </span>
-              <span>•</span>
-              <span>
-                {formatDistanceToNow(new Date(comment.created_at), {
-                  addSuffix: true,
-                  locale: ptBR
-                })}
-              </span>
-            </div>
-            {user?.id === comment.user_id && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                    <MoreVertical className="h-3 w-3" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={handleDelete} className="text-red-500">
-                    Deletar
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
-          </div>
-
-          <p className="text-terminal text-[14px] leading-relaxed">
-            {parentUsername && (
-              <span className="text-retro-cyan font-semibold mr-1">@{parentUsername}</span>
-            )}
-            {comment.content}
-          </p>
-
-          <div className="flex items-center gap-3">
+    <div className="py-2 w-full max-w-full overflow-x-hidden">
+      <div className={showIndentOnThisComment ? 'border-l-2 border-border/30 pl-4' : ''}>
+        <div className="flex gap-3 w-full min-w-0">
+          <div className="flex flex-col items-center gap-1 shrink-0">
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setShowReplyBox(!showReplyBox)}
-              className="h-7 text-xs text-muted-foreground hover:text-retro-cyan"
+              onClick={() => handleVote('up')}
+              className={`h-6 w-6 p-0 hover:bg-retro-cyan/20 ${currentVote === 'up' ? 'text-retro-cyan' : 'text-muted-foreground'}`}
             >
-              <MessageCircle className="h-3 w-3 mr-1" />
-              Responder
+              <ArrowUp className="h-4 w-4" />
+            </Button>
+            <span className={`text-pixel text-xs font-bold ${voteColor}`}>{voteCount}</span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleVote('down')}
+              className={`h-6 w-6 p-0 hover:bg-red-500/20 ${currentVote === 'down' ? 'text-red-500' : 'text-muted-foreground'}`}
+            >
+              <ArrowDown className="h-4 w-4" />
             </Button>
           </div>
 
-          {showReplyBox && (
-            <div className="space-y-2 pt-2">
-              <Textarea
-                value={replyContent}
-                onChange={(e) => setReplyContent(e.target.value)}
-                placeholder="Escreva sua resposta..."
-                className="input-retro min-h-[80px]"
-              />
-              <div className="flex gap-2">
-                <Button
-                  onClick={() => handleReplySubmit(comment.post_id)}
-                  disabled={!replyContent.trim() || submitting}
-                  className="btn-retro"
-                  size="sm"
-                >
-                  {submitting ? 'Enviando...' : 'Responder'}
-                </Button>
-                <Button
-                  onClick={() => setShowReplyBox(false)}
-                  variant="outline"
-                  size="sm"
-                >
-                  Cancelar
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {visibleReplies && visibleReplies.length > 0 && (
-            <div className="space-y-2 mt-4">
-              {visibleReplies.map((reply) => (
-                <ForumComment
-                  key={reply.id}
-                  comment={{
-                    ...reply,
-                    parentUsername: comment.profiles?.username
+          <div className="flex-1 space-y-2 min-w-0">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-center gap-2 text-xs text-terminal text-muted-foreground flex-wrap min-w-0">
+                <Avatar
+                  className="h-5 w-5 cursor-pointer shrink-0"
+                  onClick={() => {
+                    if (comment.user_id) navigate(`/profile/${comment.user_id}`);
                   }}
-                  onReply={onReply}
-                  level={level + 1}
-                  showAllReplies={showAllReplies}
-                  maxVisibleReplies={maxVisibleReplies}
-                />
-              ))}
-              
-              {hasMoreReplies && hiddenRepliesCount > 0 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => navigate(`/forum/post/${comment.post_id}/comment/${comment.id}`)}
-                  className="text-retro-cyan hover:text-retro-cyan/80 text-xs pl-4 mt-2"
                 >
-                  <MessageCircle className="h-3 w-3 mr-1" />
-                  Ver mais {hiddenRepliesCount} {hiddenRepliesCount === 1 ? 'resposta' : 'respostas'}
-                </Button>
+                  <AvatarImage src={comment.profiles?.avatar_url || undefined} />
+                  <AvatarFallback className="bg-retro-purple text-white text-xs">
+                    {comment.profiles?.username?.charAt(0)?.toUpperCase() || '?'}
+                  </AvatarFallback>
+                </Avatar>
+                <span
+                  className="font-semibold cursor-pointer hover:text-retro-cyan transition-colors truncate max-w-[12rem]"
+                  onClick={() => {
+                    if (comment.user_id) navigate(`/profile/${comment.user_id}`);
+                  }}
+                >
+                  u/{comment.profiles?.username}
+                </span>
+                <span className="shrink-0">•</span>
+                <span className="shrink-0">
+                  {formatDistanceToNow(new Date(comment.created_at), {
+                    addSuffix: true,
+                    locale: ptBR,
+                  })}
+                </span>
+              </div>
+
+              {user?.id === comment.user_id && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0">
+                      <MoreVertical className="h-3 w-3" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={handleDelete} className="text-red-500">
+                      Deletar
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               )}
             </div>
-          )}
+
+            <p className="text-terminal text-[14px] leading-relaxed break-words whitespace-pre-wrap">
+              {parentUsername && (
+                <span className="text-retro-cyan font-semibold mr-1">@{parentUsername}</span>
+              )}
+              {comment.content}
+            </p>
+
+            <div className="flex items-center gap-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowReplyBox(!showReplyBox)}
+                className="h-7 text-xs text-muted-foreground hover:text-retro-cyan"
+              >
+                <MessageCircle className="h-3 w-3 mr-1" />
+                Responder
+              </Button>
+            </div>
+
+            {showReplyBox && (
+              <div className="space-y-2 pt-2">
+                <Textarea
+                  value={replyContent}
+                  onChange={(e) => setReplyContent(e.target.value)}
+                  placeholder="Escreva sua resposta..."
+                  className="input-retro min-h-[80px]"
+                />
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => handleReplySubmit(comment.post_id)}
+                    disabled={!replyContent.trim() || submitting}
+                    className="btn-retro"
+                    size="sm"
+                  >
+                    {submitting ? 'Enviando...' : 'Responder'}
+                  </Button>
+                  <Button onClick={() => setShowReplyBox(false)} variant="outline" size="sm">
+                    Cancelar
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
+
+      {visibleReplies && visibleReplies.length > 0 && (
+        <div className={`space-y-2 mt-4 ${indentReplies ? 'pl-4' : ''}`}>
+          {visibleReplies.map((reply) => (
+            <ForumComment
+              key={reply.id}
+              comment={{
+                ...reply,
+                parentUsername: comment.profiles?.username,
+              }}
+              onReply={onReply}
+              level={level + 1}
+              showAllReplies={showAllReplies}
+              maxVisibleReplies={maxVisibleReplies}
+            />
+          ))}
+
+          {hasMoreReplies && hiddenRepliesCount > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate(`/forum/post/${comment.post_id}/comment/${comment.id}`)}
+              className="text-retro-cyan hover:text-retro-cyan/80 text-xs mt-2"
+            >
+              <MessageCircle className="h-3 w-3 mr-1" />
+              Ver mais {hiddenRepliesCount} {hiddenRepliesCount === 1 ? 'resposta' : 'respostas'}
+            </Button>
+          )}
+        </div>
+      )}
     </div>
   );
 };
