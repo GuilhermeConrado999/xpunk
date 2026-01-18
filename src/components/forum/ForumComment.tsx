@@ -206,8 +206,12 @@ export const ForumComment = ({
 
   const voteColor = currentVote === 'up' ? 'text-retro-cyan' : currentVote === 'down' ? 'text-red-500' : 'text-muted-foreground';
 
+  // Limitar indentação visual a no máximo 3 níveis
+  const maxIndentLevel = 3;
+  const shouldIndent = level < maxIndentLevel;
+
   return (
-    <div className="border-l-2 border-border/30 pl-4 py-2">
+    <div className={`py-2 ${shouldIndent ? 'border-l-2 border-border/30 pl-4' : ''}`}>
       <div className="flex gap-3">
         <div className="flex flex-col items-center gap-1">
           <Button
@@ -334,7 +338,7 @@ export const ForumComment = ({
                     parentUsername: comment.profiles?.username
                   }}
                   onReply={onReply}
-                  level={0}
+                  level={level + 1}
                   showAllReplies={showAllReplies}
                   maxVisibleReplies={maxVisibleReplies}
                 />
