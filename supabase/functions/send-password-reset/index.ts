@@ -1,18 +1,14 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { Webhook } from "https://esm.sh/standardwebhooks@1.0.0";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+const HOOK_SECRET = Deno.env.get("SUPABASE_AUTH_HOOK_SECRET");
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, webhook-id, webhook-timestamp, webhook-signature",
 };
-
-interface PasswordResetRequest {
-  email: string;
-  token_hash: string;
-  redirect_to: string;
-}
 
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
@@ -20,13 +16,20 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const payload = await req.json();
+    // Verify webhook signature
+    const payload = await req.text();
+    const headers = Object.fromEntries(req.headers);
+    
+    const wh = new Webhook(HOOK_SECRET!);
+    const verifiedPayload = wh.verify(payload, headers) as any;
+    
+    console.log("Verified payload:", JSON.stringify(verifiedPayload));
     console.log("Received payload:", JSON.stringify(payload));
 
     // Supabase Auth Hook payload structure
-    const email = payload.user?.email;
-    const tokenHash = payload.email_data?.token_hash;
-    const redirectTo = payload.email_data?.redirect_to || "https://xpunk.lovable.app";
+    const email = verifiedPayload.user?.email;
+    const tokenHash = verifiedPayload.email_data?.token_hash;
+    const redirectTo = verifiedPayload.email_data?.redirect_to || "https://xpunk.lovable.app";
 
     if (!email) {
       throw new Error("Email not found in payload");
