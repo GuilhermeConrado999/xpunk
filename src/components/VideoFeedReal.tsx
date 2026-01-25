@@ -116,7 +116,7 @@ const VideoFeedReal = () => {
   }
 
   return (
-    <section>
+    <section id="video-feed">
       {/* Feed Header */}
       <div className="retro-box p-3 mb-4 bg-secondary">
         <div className="flex items-center justify-between">

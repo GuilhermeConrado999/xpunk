@@ -22,7 +22,7 @@ const Index = () => {
               <p className="text-mono text-sm lg:text-base text-muted-foreground max-w-2xl">Bem-vindo ao XPUNK — um lugar para comunidades que compartilham a paixão por videogames, mods e aquelas cenas underground que marcaram uma geração de pessoas e ainda não tem seu lugar guardadinho! Faça upload, junte-se a uma comunidade e compartilhe suas recordações pixeladas.</p>
               <div className="flex space-x-3">
                 <button className="btn-retro" onClick={() => navigate('/upload')}>FAZER UPLOAD</button>
-                <button className="btn-retro">EXPLORAR VÍDEOS</button>
+                <button className="btn-retro" onClick={() => document.getElementById('video-feed')?.scrollIntoView({ behavior: 'smooth' })}>EXPLORAR VÍDEOS</button>
               </div>
             </div>
             
