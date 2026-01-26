@@ -2,11 +2,13 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { useResumableUpload } from '@/hooks/useResumableUpload';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
 import { Upload as UploadIcon, ArrowLeft, Video, Image as ImageIcon } from 'lucide-react';
 import RetroHeader from '@/components/RetroHeader';
@@ -19,6 +21,8 @@ const Upload = () => {
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [videoPreview, setVideoPreview] = useState<string | null>(null);
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading-video' | 'uploading-thumb' | 'saving'>('idle');
   
   const [formData, setFormData] = useState({
     title: '',
@@ -27,6 +31,17 @@ const Upload = () => {
     tags: '',
     isPublic: true,
     allowDownload: false,
+  });
+
+  const videoUploader = useResumableUpload({
+    bucket: 'videos',
+    onProgress: (progress) => {
+      setUploadProgress(progress.percentage);
+    },
+    onError: (error) => {
+      console.error('Video upload error:', error);
+      toast.error('Erro ao fazer upload do vídeo: ' + error.message);
+    }
   });
 
   const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -72,23 +87,27 @@ const Upload = () => {
     }
 
     setUploading(true);
+    setUploadProgress(0);
 
     try {
-      // Upload video
+      // Upload video with progress
+      setUploadStatus('uploading-video');
       const videoFileName = `${user.id}/video-${Date.now()}.${videoFile.name.split('.').pop()}`;
-      const { error: videoError } = await supabase.storage
-        .from('videos')
-        .upload(videoFileName, videoFile);
+      
+      const videoResult = await videoUploader.upload(videoFile, videoFileName);
+      
+      if (!videoResult) {
+        throw new Error('Falha no upload do vídeo');
+      }
 
-      if (videoError) throw videoError;
-
-      const { data: { publicUrl: videoUrl } } = supabase.storage
-        .from('videos')
-        .getPublicUrl(videoFileName);
+      const videoUrl = videoResult.publicUrl;
 
       // Upload thumbnail if exists
       let thumbnailUrl = null;
       if (thumbnailFile) {
+        setUploadStatus('uploading-thumb');
+        setUploadProgress(0);
+        
         const thumbnailFileName = `${user.id}/thumb-${Date.now()}.${thumbnailFile.name.split('.').pop()}`;
         const { error: thumbError } = await supabase.storage
           .from('thumbnails')
@@ -104,6 +123,7 @@ const Upload = () => {
       }
 
       // Get video duration
+      setUploadStatus('saving');
       const video = document.createElement('video');
       video.src = videoPreview!;
       await new Promise((resolve) => {
@@ -136,6 +156,8 @@ const Upload = () => {
       toast.error('Erro ao fazer upload: ' + error.message);
     } finally {
       setUploading(false);
+      setUploadStatus('idle');
+      setUploadProgress(0);
     }
   };
 
@@ -351,6 +373,26 @@ const Upload = () => {
                   </div>
                 </div>
 
+                {/* Upload Progress */}
+                {uploading && (
+                  <div className="retro-box p-4 bg-card space-y-2">
+                    <div className="flex items-center justify-between text-mono text-sm">
+                      <span className="text-terminal">
+                        {uploadStatus === 'uploading-video' && 'Enviando vídeo...'}
+                        {uploadStatus === 'uploading-thumb' && 'Enviando thumbnail...'}
+                        {uploadStatus === 'saving' && 'Salvando...'}
+                      </span>
+                      <span className="text-retro-cyan">{uploadProgress}%</span>
+                    </div>
+                    <Progress value={uploadProgress} className="h-3" />
+                    {videoFile && uploadStatus === 'uploading-video' && (
+                      <p className="text-xs text-muted-foreground">
+                        {(videoFile.size / (1024 * 1024)).toFixed(1)}MB • Aguarde, arquivos grandes podem demorar
+                      </p>
+                    )}
+                  </div>
+                )}
+
                 {/* Submit Button */}
                 <Button
                   type="submit"
@@ -358,7 +400,7 @@ const Upload = () => {
                   className="btn-retro w-full"
                 >
                   {uploading ? (
-                    <>ENVIANDO...</>
+                    <>ENVIANDO... {uploadProgress}%</>
                   ) : (
                     <>
                       <UploadIcon className="mr-2 h-4 w-4" />
