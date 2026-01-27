@@ -1,4 +1,5 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
+import * as tus from 'tus-js-client';
 import { supabase } from '@/integrations/supabase/client';
 
 interface UploadProgress {
@@ -14,156 +15,96 @@ interface UseResumableUploadOptions {
   onSuccess?: (path: string, publicUrl: string) => void;
 }
 
+const SUPABASE_URL = 'https://hpycamgntrltmptgssae.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhweWNhbWdudHJsdG1wdGdzc2FlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkwOTA4MjMsImV4cCI6MjA3NDY2NjgyM30.XC9L-KvdnqslrvtnT1xGdcz3-dGmIiVIIsSQ0X4ahXU';
+
 export const useResumableUpload = (options: UseResumableUploadOptions) => {
   const { bucket, onProgress, onError, onSuccess } = options;
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState<UploadProgress>({ loaded: 0, total: 0, percentage: 0 });
+  const uploadRef = useRef<tus.Upload | null>(null);
 
   const upload = useCallback(async (file: File, filePath: string): Promise<{ path: string; publicUrl: string } | null> => {
     setUploading(true);
     setProgress({ loaded: 0, total: file.size, percentage: 0 });
 
     try {
-      // Para arquivos menores que 6MB, usar upload padrão
-      if (file.size < 6 * 1024 * 1024) {
-        const { error } = await supabase.storage
-          .from(bucket)
-          .upload(filePath, file, {
+      // Get current session for auth token
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Usuário não autenticado');
+      }
+
+      return new Promise((resolve, reject) => {
+        const tusUpload = new tus.Upload(file, {
+          endpoint: `${SUPABASE_URL}/storage/v1/upload/resumable`,
+          retryDelays: [0, 1000, 3000, 5000, 10000],
+          chunkSize: 6 * 1024 * 1024, // 6MB chunks (Supabase recommended)
+          headers: {
+            authorization: `Bearer ${session.access_token}`,
+            'x-upsert': 'false',
+          },
+          uploadDataDuringCreation: true,
+          removeFingerprintOnSuccess: true,
+          metadata: {
+            bucketName: bucket,
+            objectName: filePath,
+            contentType: file.type,
             cacheControl: '3600',
-            upsert: false
-          });
-
-        if (error) throw error;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from(bucket)
-          .getPublicUrl(filePath);
-
-        setProgress({ loaded: file.size, total: file.size, percentage: 100 });
-        onSuccess?.(filePath, publicUrl);
-        return { path: filePath, publicUrl };
-      }
-
-      // Para arquivos maiores, usar upload em chunks com XMLHttpRequest
-      // O Supabase SDK não expõe progresso diretamente, então vamos usar o método resumable
-
-      const CHUNK_SIZE = 6 * 1024 * 1024; // 6MB chunks
-      const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
-      let uploadedBytes = 0;
-
-      // Primeiro, tentar criar o upload
-      const { data: sessionData, error: sessionError } = await supabase.storage
-        .from(bucket)
-        .createSignedUploadUrl(filePath);
-
-      if (sessionError) {
-        // Se não suportar signed upload, usar método alternativo com chunks menores
-        // Fazemos upload direto com monitoramento de progresso via fetch
-        const formData = new FormData();
-        formData.append('', file);
-
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) throw new Error('Usuário não autenticado');
-
-        const response = await new Promise<Response>((resolve, reject) => {
-          const xhr = new XMLHttpRequest();
-          
-          xhr.upload.addEventListener('progress', (e) => {
-            if (e.lengthComputable) {
-              const progressData = {
-                loaded: e.loaded,
-                total: e.total,
-                percentage: Math.round((e.loaded / e.total) * 100)
-              };
-              setProgress(progressData);
-              onProgress?.(progressData);
-            }
-          });
-
-          xhr.addEventListener('load', () => {
-            if (xhr.status >= 200 && xhr.status < 300) {
-              resolve(new Response(xhr.responseText, { status: xhr.status }));
-            } else {
-              reject(new Error(xhr.responseText || 'Upload failed'));
-            }
-          });
-
-          xhr.addEventListener('error', () => reject(new Error('Network error')));
-          xhr.addEventListener('abort', () => reject(new Error('Upload aborted')));
-
-          const supabaseUrl = 'https://hpycamgntrltmptgssae.supabase.co';
-          xhr.open('POST', `${supabaseUrl}/storage/v1/object/${bucket}/${filePath}`);
-          xhr.setRequestHeader('Authorization', `Bearer ${session.access_token}`);
-          xhr.setRequestHeader('x-upsert', 'false');
-          xhr.send(file);
-        });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(errorText);
-        }
-
-        const { data: { publicUrl } } = supabase.storage
-          .from(bucket)
-          .getPublicUrl(filePath);
-
-        setProgress({ loaded: file.size, total: file.size, percentage: 100 });
-        onSuccess?.(filePath, publicUrl);
-        return { path: filePath, publicUrl };
-      }
-
-      // Usar signed URL para upload
-      const response = await new Promise<Response>((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        
-        xhr.upload.addEventListener('progress', (e) => {
-          if (e.lengthComputable) {
+          },
+          onError: (error) => {
+            console.error('TUS Upload error:', error);
+            setUploading(false);
+            onError?.(error);
+            reject(error);
+          },
+          onProgress: (bytesUploaded, bytesTotal) => {
             const progressData = {
-              loaded: e.loaded,
-              total: e.total,
-              percentage: Math.round((e.loaded / e.total) * 100)
+              loaded: bytesUploaded,
+              total: bytesTotal,
+              percentage: Math.round((bytesUploaded / bytesTotal) * 100)
             };
             setProgress(progressData);
             onProgress?.(progressData);
-          }
+          },
+          onSuccess: () => {
+            const { data: { publicUrl } } = supabase.storage
+              .from(bucket)
+              .getPublicUrl(filePath);
+
+            setProgress({ loaded: file.size, total: file.size, percentage: 100 });
+            setUploading(false);
+            onSuccess?.(filePath, publicUrl);
+            resolve({ path: filePath, publicUrl });
+          },
         });
 
-        xhr.addEventListener('load', () => {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            resolve(new Response(xhr.responseText, { status: xhr.status }));
-          } else {
-            reject(new Error(xhr.responseText || 'Upload failed'));
+        uploadRef.current = tusUpload;
+
+        // Check for previous uploads to resume
+        tusUpload.findPreviousUploads().then((previousUploads) => {
+          if (previousUploads.length > 0) {
+            tusUpload.resumeFromPreviousUpload(previousUploads[0]);
           }
+          tusUpload.start();
         });
-
-        xhr.addEventListener('error', () => reject(new Error('Network error')));
-        xhr.addEventListener('abort', () => reject(new Error('Upload aborted')));
-
-        xhr.open('PUT', sessionData.signedUrl);
-        xhr.setRequestHeader('Content-Type', file.type);
-        xhr.send(file);
       });
-
-      if (!response.ok) {
-        throw new Error('Upload failed');
-      }
-
-      const { data: { publicUrl } } = supabase.storage
-        .from(bucket)
-        .getPublicUrl(filePath);
-
-      setProgress({ loaded: file.size, total: file.size, percentage: 100 });
-      onSuccess?.(filePath, publicUrl);
-      return { path: filePath, publicUrl };
 
     } catch (error: any) {
       console.error('Upload error:', error);
+      setUploading(false);
       onError?.(error);
       return null;
-    } finally {
-      setUploading(false);
     }
   }, [bucket, onProgress, onError, onSuccess]);
+
+  const abort = useCallback(() => {
+    if (uploadRef.current) {
+      uploadRef.current.abort();
+      setUploading(false);
+      setProgress({ loaded: 0, total: 0, percentage: 0 });
+    }
+  }, []);
 
   const reset = useCallback(() => {
     setProgress({ loaded: 0, total: 0, percentage: 0 });
@@ -174,6 +115,7 @@ export const useResumableUpload = (options: UseResumableUploadOptions) => {
     upload,
     uploading,
     progress,
-    reset
+    reset,
+    abort
   };
 };
