@@ -23,7 +23,7 @@ const Upload = () => {
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading-video' | 'uploading-thumb' | 'saving'>('idle');
-  
+
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -47,8 +47,8 @@ const Upload = () => {
   const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 524288000) { // 500MB
-        toast.error('O vídeo deve ter no máximo 500MB');
+      if (file.size > 2147483648) { // 2GB
+        toast.error('O vídeo deve ter no máximo 2GB');
         return;
       }
       setVideoFile(file);
@@ -70,7 +70,7 @@ const Upload = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!user) {
       toast.error('Você precisa estar logado para fazer upload');
       return;
@@ -93,9 +93,9 @@ const Upload = () => {
       // Upload video with progress
       setUploadStatus('uploading-video');
       const videoFileName = `${user.id}/video-${Date.now()}.${videoFile.name.split('.').pop()}`;
-      
+
       const videoResult = await videoUploader.upload(videoFile, videoFileName);
-      
+
       if (!videoResult) {
         throw new Error('Falha no upload do vídeo');
       }
@@ -107,7 +107,7 @@ const Upload = () => {
       if (thumbnailFile) {
         setUploadStatus('uploading-thumb');
         setUploadProgress(0);
-        
+
         const thumbnailFileName = `${user.id}/thumb-${Date.now()}.${thumbnailFile.name.split('.').pop()}`;
         const { error: thumbError } = await supabase.storage
           .from('thumbnails')
@@ -118,7 +118,7 @@ const Upload = () => {
         const { data: { publicUrl } } = supabase.storage
           .from('thumbnails')
           .getPublicUrl(thumbnailFileName);
-        
+
         thumbnailUrl = publicUrl;
       }
 
@@ -164,7 +164,7 @@ const Upload = () => {
   return (
     <div className="min-h-screen bg-background">
       <RetroHeader />
-      
+
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           {/* Header */}
@@ -177,7 +177,7 @@ const Upload = () => {
               <ArrowLeft className="mr-2 h-4 w-4" />
               VOLTAR
             </Button>
-            
+
             <h1 className="text-pixel text-3xl glow-text text-retro-purple mb-2">
               FAZER UPLOAD DE VÍDEO
             </h1>
@@ -195,11 +195,11 @@ const Upload = () => {
                   <h2 className="text-pixel text-xl mb-4 text-terminal">
                     ARQUIVO DE VÍDEO
                   </h2>
-                  
+
                   <div className="space-y-4">
                     <div>
                       <Label htmlFor="video" className="text-mono">
-                        Vídeo * (Max: 500MB)
+                        Vídeo * (Max: 2GB)
                       </Label>
                       <div className="mt-2">
                         <label htmlFor="video" className="cursor-pointer block">
@@ -307,7 +307,7 @@ const Upload = () => {
                   <h2 className="text-pixel text-xl mb-4 text-terminal">
                     THUMBNAIL
                   </h2>
-                  
+
                   <div>
                     <Label htmlFor="thumbnail" className="text-mono">
                       Imagem (Opcional)
