@@ -378,7 +378,7 @@ const Upload = () => {
                   <div className="retro-box p-4 bg-card space-y-2">
                     <div className="flex items-center justify-between text-mono text-sm">
                       <span className="text-terminal">
-                        {uploadStatus === 'uploading-video' && 'Enviando vídeo...'}
+                        {uploadStatus === 'uploading-video' && 'Enviando vídeo (TUS)...'}
                         {uploadStatus === 'uploading-thumb' && 'Enviando thumbnail...'}
                         {uploadStatus === 'saving' && 'Salvando...'}
                       </span>
@@ -387,7 +387,7 @@ const Upload = () => {
                     <Progress value={uploadProgress} className="h-3" />
                     {videoFile && uploadStatus === 'uploading-video' && (
                       <p className="text-xs text-muted-foreground">
-                        {(videoFile.size / (1024 * 1024)).toFixed(1)}MB • Aguarde, arquivos grandes podem demorar
+                        {(videoFile.size / (1024 * 1024)).toFixed(1)}MB • Upload resumível em chunks de 6MB
                       </p>
                     )}
                   </div>
