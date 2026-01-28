@@ -47,8 +47,8 @@ const Upload = () => {
   const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 2147483648) { // 2GB
-        toast.error('O vídeo deve ter no máximo 2GB');
+      if (file.size > 52428800) { // 50MB - Supabase Free Plan limit
+        toast.error('O vídeo deve ter no máximo 50MB (limite do plano Free do Supabase)');
         return;
       }
       setVideoFile(file);
@@ -199,7 +199,7 @@ const Upload = () => {
                   <div className="space-y-4">
                     <div>
                       <Label htmlFor="video" className="text-mono">
-                        Vídeo * (Max: 2GB)
+                        Vídeo * (Max: 50MB)
                       </Label>
                       <div className="mt-2">
                         <label htmlFor="video" className="cursor-pointer block">
