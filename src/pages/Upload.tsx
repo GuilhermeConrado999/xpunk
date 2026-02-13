@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -24,6 +24,28 @@ const Upload = () => {
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading-video' | 'uploading-thumb' | 'saving'>('idle');
+  const [communities, setCommunities] = useState<{ name: string }[]>([]);
+
+  useEffect(() => {
+    const fetchCommunities = async () => {
+      console.log('Buscando comunidades do Supabase...');
+      const { data, error } = await supabase
+        .from('communities')
+        .select('name')
+        .order('name');
+
+      if (error) {
+        console.error('Erro ao buscar comunidades:', error);
+        return;
+      }
+
+      console.log('Comunidades encontradas:', data);
+      if (data) {
+        setCommunities(data);
+      }
+    };
+    fetchCommunities();
+  }, []);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -256,22 +278,20 @@ const Upload = () => {
                     />
                   </div>
 
-                  <div>
-                    <Label htmlFor="community" className="text-mono">Comunidade *</Label>
-                    <Select
-                      value={formData.community}
-                      onValueChange={(value) => setFormData({ ...formData, community: value })}
-                    >
-                      <SelectTrigger className="mt-2 text-mono">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-community" className="text-terminal">
+                      Comunidade *
+                    </Label>
+                    <Select value={formData.community} onValueChange={(value) => setFormData({ ...formData, community: value })}>
+                      <SelectTrigger className="input-retro">
                         <SelectValue placeholder="Selecione uma comunidade" />
                       </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="mods">Mods Clássicos</SelectItem>
-                        <SelectItem value="speedruns">Speedruns</SelectItem>
-                        <SelectItem value="lets-plays">Let's Plays</SelectItem>
-                        <SelectItem value="machinima">Machinima</SelectItem>
-                        <SelectItem value="tutoriais">Tutoriais</SelectItem>
-                        <SelectItem value="outros">Outros</SelectItem>
+                      <SelectContent className="retro-box bg-card">
+                        {communities.map((comm) => (
+                          <SelectItem key={comm.name} value={comm.name}>
+                            {comm.name}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
