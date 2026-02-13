@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useResumableUpload } from '@/hooks/useResumableUpload';
+import { uploadToR2 } from '@/lib/r2-upload';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -47,8 +48,8 @@ const Upload = () => {
   const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 52428800) { // 50MB - Supabase Free Plan limit
-        toast.error('O vídeo deve ter no máximo 50MB (limite do plano Free do Supabase)');
+      if (file.size > 5368709120) { // 5GB - Cloudflare R2 limit per PUT
+        toast.error('O vídeo deve ter no máximo 5GB');
         return;
       }
       setVideoFile(file);
@@ -109,16 +110,7 @@ const Upload = () => {
         setUploadProgress(0);
 
         const thumbnailFileName = `${user.id}/thumb-${Date.now()}.${thumbnailFile.name.split('.').pop()}`;
-        const { error: thumbError } = await supabase.storage
-          .from('thumbnails')
-          .upload(thumbnailFileName, thumbnailFile);
-
-        if (thumbError) throw thumbError;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('thumbnails')
-          .getPublicUrl(thumbnailFileName);
-
+        const { publicUrl } = await uploadToR2(thumbnailFile, thumbnailFileName, 'thumbnails');
         thumbnailUrl = publicUrl;
       }
 
@@ -387,7 +379,7 @@ const Upload = () => {
                     <Progress value={uploadProgress} className="h-3" />
                     {videoFile && uploadStatus === 'uploading-video' && (
                       <p className="text-xs text-muted-foreground">
-                        {(videoFile.size / (1024 * 1024)).toFixed(1)}MB • Upload resumível em chunks de 6MB
+                        {(videoFile.size / (1024 * 1024)).toFixed(1)}MB • Upload via Cloudflare R2
                       </p>
                     )}
                   </div>

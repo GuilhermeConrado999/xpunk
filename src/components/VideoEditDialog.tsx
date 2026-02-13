@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
+import { uploadToR2, deleteFromR2, extractPathFromUrl } from '@/lib/r2-upload';
 import { useToast } from '@/hooks/use-toast';
 
 interface VideoEditDialogProps {
@@ -49,7 +50,7 @@ const VideoEditDialog = ({
       .from('communities')
       .select('name')
       .order('name');
-    
+
     if (data) {
       setCommunities(data);
     }
@@ -58,7 +59,7 @@ const VideoEditDialog = ({
   const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      
+
       if (!file.type.startsWith('image/')) {
         toast({
           title: "Erro",
@@ -67,7 +68,7 @@ const VideoEditDialog = ({
         });
         return;
       }
-      
+
       if (file.size > 5242880) { // 5MB
         toast({
           title: "Erro",
@@ -76,7 +77,7 @@ const VideoEditDialog = ({
         });
         return;
       }
-      
+
       setThumbnailFile(file);
     }
   };
@@ -106,21 +107,14 @@ const VideoEditDialog = ({
 
         // Remove thumbnail antiga se existir
         if (currentThumbnailUrl) {
-          const oldPath = currentThumbnailUrl.split('/thumbnails/')[1];
+          const oldPath = extractPathFromUrl(currentThumbnailUrl, 'thumbnails');
           if (oldPath) {
-            await supabase.storage.from('thumbnails').remove([oldPath]);
+            await deleteFromR2(oldPath, 'thumbnails');
           }
         }
 
-        const { error: uploadError } = await supabase.storage
-          .from('thumbnails')
-          .upload(filePath, thumbnailFile);
-
-        if (uploadError) throw uploadError;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('thumbnails')
-          .getPublicUrl(filePath);
+        // Upload to R2
+        const { publicUrl } = await uploadToR2(thumbnailFile, filePath, 'thumbnails');
 
         thumbnailUrl = publicUrl;
       }

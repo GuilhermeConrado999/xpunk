@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { uploadToR2, deleteFromR2, extractPathFromUrl } from '@/lib/r2-upload';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -136,7 +137,7 @@ const Profile = () => {
       .from('communities')
       .select('id, name, emoji, color, description, thumbnail_url')
       .order('name');
-    
+
     if (data) {
       setCommunities(data);
     }
@@ -163,7 +164,7 @@ const Profile = () => {
         });
         setSelectedFavoriteCommunityId(data.favorite_community_id);
       }
-      
+
       // Fetch favorite community details
       if (data.favorite_community_id) {
         const { data: communityData } = await supabase
@@ -171,7 +172,7 @@ const Profile = () => {
           .select('id, name, emoji, color, description, thumbnail_url')
           .eq('id', data.favorite_community_id)
           .single();
-        
+
         if (communityData) {
           setFavoriteCommunity(communityData);
         }
@@ -235,8 +236,8 @@ const Profile = () => {
     const totalVideos = videos?.length || 0;
     const totalViews = videos?.reduce((sum, video) => sum + (video.views || 0), 0) || 0;
     const totalRatings = ratings?.length || 0;
-    const avgRating = ratings?.length 
-      ? ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length 
+    const avgRating = ratings?.length
+      ? ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length
       : 0;
 
     // Calcular nível baseado na atividade
@@ -315,18 +316,18 @@ const Profile = () => {
     return new Promise((resolve) => {
       const img = new Image();
       const url = URL.createObjectURL(file);
-      
+
       img.onload = () => {
         URL.revokeObjectURL(url);
         const isValid = img.width >= 1920 && img.height >= 1080;
         resolve(isValid);
       };
-      
+
       img.onerror = () => {
         URL.revokeObjectURL(url);
         resolve(false);
       };
-      
+
       img.src = url;
     });
   };
@@ -335,7 +336,7 @@ const Profile = () => {
     if (!user || !event.target.files || event.target.files.length === 0) return;
 
     const file = event.target.files[0];
-    
+
     // Validar tipo de arquivo
     if (file.type !== 'image/gif') {
       toast({
@@ -373,25 +374,14 @@ const Profile = () => {
 
       // Remove old background if exists
       if (profile?.background_url) {
-        const oldPath = profile.background_url.split('/backgrounds/')[1];
+        const oldPath = extractPathFromUrl(profile.background_url, 'backgrounds');
         if (oldPath) {
-          await supabase.storage
-            .from('backgrounds')
-            .remove([oldPath]);
+          await deleteFromR2(oldPath, 'backgrounds');
         }
       }
 
-      // Upload to storage
-      const { error: uploadError } = await supabase.storage
-        .from('backgrounds')
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('backgrounds')
-        .getPublicUrl(filePath);
+      // Upload to R2
+      const { publicUrl } = await uploadToR2(file, filePath, 'backgrounds');
 
       // Update profile with new background URL
       const { error: updateError } = await supabase
@@ -429,17 +419,8 @@ const Profile = () => {
     setUploadingAvatar(true);
 
     try {
-      // Upload to storage
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, file, { upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(filePath);
+      // Upload to R2
+      const { publicUrl } = await uploadToR2(file, filePath, 'avatars');
 
       // Update profile with new avatar URL
       const { error: updateError } = await supabase
@@ -532,15 +513,15 @@ const Profile = () => {
   return (
     <div className="min-h-screen bg-background">
       <RetroHeader />
-      
+
       <div className="container mx-auto px-4 py-6">
         {/* Profile Header - Steam Style */}
         <div className="retro-box bg-card p-6 mb-6 scanlines relative overflow-hidden">
           {/* Custom Background */}
           {profile.background_url && (
             <div className="absolute inset-0 z-0">
-              <img 
-                src={profile.background_url} 
+              <img
+                src={profile.background_url}
                 alt="Profile background"
                 className="w-full h-full object-cover"
               />
@@ -549,7 +530,7 @@ const Profile = () => {
           {!profile.background_url && (
             <div className="absolute inset-0 bg-gradient-to-r from-retro-purple/10 to-retro-cyan/10 z-0"></div>
           )}
-          
+
           <div className="relative flex flex-col lg:flex-row items-start lg:items-center gap-6">
             {/* Avatar Section */}
             <div className="flex flex-col items-center space-y-4">
@@ -561,8 +542,8 @@ const Profile = () => {
                   </AvatarFallback>
                 </Avatar>
                 {isOwnProfile && (
-                  <label 
-                    htmlFor="avatar-upload" 
+                  <label
+                    htmlFor="avatar-upload"
                     className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-full"
                   >
                     <span className="text-white text-xs text-center px-2">
@@ -579,14 +560,14 @@ const Profile = () => {
                   </label>
                 )}
               </div>
-              
+
               {userStats && (
                 <div className="text-center space-y-1">
                   <div className="text-pixel text-retro-cyan text-xl">
                     LEVEL {userStats.level}
                   </div>
-                  <Progress 
-                    value={getProgressToNextLevel()} 
+                  <Progress
+                    value={getProgressToNextLevel()}
                     className="w-24 h-2 bg-retro-bg border border-retro-cyan/50"
                   />
                   <div className="text-xs text-mono text-muted-foreground">
@@ -594,7 +575,7 @@ const Profile = () => {
                   </div>
                   <div className="flex flex-col gap-2 mt-2">
                     {userRoles.some(r => r.role === 'dev') && (
-                      <Badge 
+                      <Badge
                         variant="dev"
                         className="pixel-border"
                       >
@@ -617,9 +598,9 @@ const Profile = () => {
                     @{profile.username}
                   </p>
                 </div>
-                
+
                 {isOwnProfile ? (
-                  <Button 
+                  <Button
                     onClick={() => setIsEditing(!isEditing)}
                     className="btn-retro"
                   >
@@ -628,7 +609,7 @@ const Profile = () => {
                 ) : user ? (
                   <div className="flex gap-2">
                     {friendshipStatus === 'accepted' && (
-                      <Button 
+                      <Button
                         onClick={() => openChat(profileUserId!, profile.display_name || profile.username)}
                         className="btn-retro"
                       >
@@ -636,7 +617,7 @@ const Profile = () => {
                       </Button>
                     )}
                     {!friendshipStatus && (
-                      <Button 
+                      <Button
                         onClick={sendFriendRequest}
                         className="btn-retro"
                       >
@@ -644,7 +625,7 @@ const Profile = () => {
                       </Button>
                     )}
                     {friendshipStatus === 'pending' && (
-                      <Button 
+                      <Button
                         disabled
                         variant="outline"
                         className="btn-retro"
@@ -693,27 +674,27 @@ const Profile = () => {
                 <Input
                   id="username"
                   value={editData.username}
-                  onChange={(e) => setEditData({...editData, username: e.target.value})}
+                  onChange={(e) => setEditData({ ...editData, username: e.target.value })}
                   className="input-retro"
                 />
               </div>
-              
+
               <div>
                 <Label htmlFor="display_name" className="text-terminal">Nome de Exibição</Label>
                 <Input
                   id="display_name"
                   value={editData.display_name}
-                  onChange={(e) => setEditData({...editData, display_name: e.target.value})}
+                  onChange={(e) => setEditData({ ...editData, display_name: e.target.value })}
                   className="input-retro"
                 />
               </div>
-              
+
               <div>
                 <Label htmlFor="bio" className="text-terminal">Biografia</Label>
                 <textarea
                   id="bio"
                   value={editData.bio}
-                  onChange={(e) => setEditData({...editData, bio: e.target.value})}
+                  onChange={(e) => setEditData({ ...editData, bio: e.target.value })}
                   className="w-full p-3 bg-background border border-border rounded text-mono text-sm min-h-24"
                   placeholder="Conte sobre você, seus jogos favoritos, etc..."
                 />
@@ -726,15 +707,15 @@ const Profile = () => {
                 <div className="space-y-2">
                   {profile.background_url && (
                     <div className="relative w-full h-32 rounded overflow-hidden border border-border">
-                      <img 
-                        src={profile.background_url} 
-                        alt="Background atual" 
+                      <img
+                        src={profile.background_url}
+                        alt="Background atual"
                         className="w-full h-full object-cover"
                       />
                     </div>
                   )}
                   <div className="flex gap-2">
-                    <label 
+                    <label
                       htmlFor="background-upload"
                       className="btn-retro cursor-pointer inline-flex items-center justify-center"
                     >
@@ -800,14 +781,14 @@ const Profile = () => {
                   Escolha uma comunidade para exibir no seu perfil
                 </p>
               </div>
-              
+
               <div className="flex gap-2">
                 <Button onClick={updateProfile} className="btn-retro">
                   SALVAR ALTERAÇÕES
                 </Button>
-                <Button 
-                  onClick={() => setIsEditing(false)} 
-                  variant="outline" 
+                <Button
+                  onClick={() => setIsEditing(false)}
+                  variant="outline"
                   className="btn-retro"
                 >
                   CANCELAR
@@ -845,8 +826,8 @@ const Profile = () => {
                 {userVideos.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {userVideos.map((video) => (
-                      <VideoCardReal 
-                        key={video.id} 
+                      <VideoCardReal
+                        key={video.id}
                         video={video}
                         onVideoUpdated={() => {
                           fetchUserVideos();
@@ -861,7 +842,7 @@ const Profile = () => {
                       Nenhum vídeo foi feito o upload ainda...
                     </p>
                     {isOwnProfile && (
-                      <Button 
+                      <Button
                         className="btn-retro mt-4"
                         onClick={() => window.location.href = '/upload'}
                       >
@@ -880,25 +861,25 @@ const Profile = () => {
               </CardHeader>
               <CardContent>
                 {favoriteCommunity ? (
-                  <div 
+                  <div
                     className="p-4 rounded-lg border-2 flex items-center gap-4 cursor-pointer hover:opacity-80 transition-opacity"
-                    style={{ 
+                    style={{
                       borderColor: favoriteCommunity.color,
                       background: `linear-gradient(135deg, ${favoriteCommunity.color}20 0%, transparent 100%)`
                     }}
                     onClick={() => window.location.href = `/community/${favoriteCommunity.id}`}
                   >
                     {favoriteCommunity.thumbnail_url ? (
-                      <img 
-                        src={favoriteCommunity.thumbnail_url} 
+                      <img
+                        src={favoriteCommunity.thumbnail_url}
                         alt={favoriteCommunity.name}
                         className="w-16 h-16 rounded-lg object-cover border-2"
                         style={{ borderColor: favoriteCommunity.color }}
                       />
                     ) : (
-                      <div 
+                      <div
                         className="w-16 h-16 rounded-lg flex items-center justify-center text-3xl border-2"
-                        style={{ 
+                        style={{
                           backgroundColor: `${favoriteCommunity.color}30`,
                           borderColor: favoriteCommunity.color
                         }}
@@ -919,9 +900,9 @@ const Profile = () => {
                         </p>
                       )}
                     </div>
-                    <Badge 
+                    <Badge
                       className="text-mono"
-                      style={{ 
+                      style={{
                         backgroundColor: favoriteCommunity.color,
                         color: '#fff'
                       }}
@@ -934,7 +915,7 @@ const Profile = () => {
                     {isOwnProfile ? (
                       <>
                         <p className="mb-3">Nenhuma comunidade favorita selecionada.</p>
-                        <Button 
+                        <Button
                           onClick={() => setIsEditing(true)}
                           variant="outline"
                           className="btn-retro"
@@ -966,7 +947,7 @@ const Profile = () => {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="p-4 border border-retro-pink/30 rounded bg-card/50">
                     <div className="flex items-center gap-3">
                       <div className="text-2xl">👁️</div>
@@ -976,7 +957,7 @@ const Profile = () => {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="p-4 border border-retro-purple/30 rounded bg-card/50 opacity-50">
                     <div className="flex items-center gap-3">
                       <div className="text-2xl">⭐</div>
@@ -986,7 +967,7 @@ const Profile = () => {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="p-4 border border-retro-cyan/30 rounded bg-card/50 opacity-50">
                     <div className="flex items-center gap-3">
                       <div className="text-2xl">🏆</div>
@@ -1001,9 +982,9 @@ const Profile = () => {
             </Card>
 
             {/* Profile Comments Section */}
-            <ProfileComments 
-              profileUserId={profileUserId!} 
-              isOwnProfile={isOwnProfile} 
+            <ProfileComments
+              profileUserId={profileUserId!}
+              isOwnProfile={isOwnProfile}
             />
           </div>
 
@@ -1013,7 +994,7 @@ const Profile = () => {
             {userStats && (
               <div className="space-y-4">
                 <h2 className="text-pixel text-retro-cyan text-xl">ESTATÍSTICAS</h2>
-                
+
                 <Card className="retro-box bg-card text-center">
                   <CardContent className="p-6">
                     <div className="text-3xl text-pixel text-retro-cyan mb-2">
@@ -1022,7 +1003,7 @@ const Profile = () => {
                     <div className="text-terminal text-sm">VÍDEOS PUBLICADOS</div>
                   </CardContent>
                 </Card>
-                
+
                 <Card className="retro-box bg-card text-center">
                   <CardContent className="p-6">
                     <div className="text-3xl text-pixel text-retro-pink mb-2">
@@ -1031,7 +1012,7 @@ const Profile = () => {
                     <div className="text-terminal text-sm">VISUALIZAÇÕES TOTAIS</div>
                   </CardContent>
                 </Card>
-                
+
                 <Card className="retro-box bg-card text-center">
                   <CardContent className="p-6">
                     <div className="text-3xl text-pixel text-retro-purple mb-2">
@@ -1040,7 +1021,7 @@ const Profile = () => {
                     <div className="text-terminal text-sm">RATING MÉDIO</div>
                   </CardContent>
                 </Card>
-                
+
                 <Card className="retro-box bg-card text-center">
                   <CardContent className="p-6">
                     <div className="text-3xl text-pixel text-retro-cyan mb-2">

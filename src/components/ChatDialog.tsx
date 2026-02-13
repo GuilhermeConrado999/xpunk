@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { uploadToR2 } from '@/lib/r2-upload';
 import { useAuth } from '@/hooks/useAuth';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -72,11 +73,11 @@ const ChatDialog: React.FC<ChatDialogProps> = ({
           },
           (payload) => {
             const newMessage = payload.new as Message;
-            
-            const isRelevant = 
+
+            const isRelevant =
               (newMessage.sender_id === user.id && newMessage.receiver_id === friendId) ||
               (newMessage.sender_id === friendId && newMessage.receiver_id === user.id);
-            
+
             if (isRelevant && !newMessage.deleted_for?.includes(user.id)) {
               setMessages((prev) => {
                 if (prev.some(m => m.id === newMessage.id)) {
@@ -84,7 +85,7 @@ const ChatDialog: React.FC<ChatDialogProps> = ({
                 }
                 return [...prev, newMessage];
               });
-              
+
               if (newMessage.sender_id === friendId) {
                 markMessagesAsRead();
               }
@@ -175,7 +176,7 @@ const ChatDialog: React.FC<ChatDialogProps> = ({
     if (!user) return;
 
     const messageIds = messages.map(m => m.id);
-    
+
     if (messageIds.length === 0) return;
 
     for (const messageId of messageIds) {
@@ -189,7 +190,7 @@ const ChatDialog: React.FC<ChatDialogProps> = ({
         const deletedFor = currentMessage.deleted_for || [];
         if (!deletedFor.includes(user.id)) {
           deletedFor.push(user.id);
-          
+
           await supabase
             .from('messages')
             .update({ deleted_for: deletedFor })
@@ -239,31 +240,25 @@ const ChatDialog: React.FC<ChatDialogProps> = ({
 
     const fileExt = file.name.split('.').pop();
     const fileName = `${user.id}/${Date.now()}.${fileExt}`;
-    
-    const { error: uploadError } = await supabase.storage
-      .from('chat-media')
-      .upload(fileName, file);
 
-    if (uploadError) {
-      console.error('Upload error:', uploadError);
+    try {
+      const { publicUrl } = await uploadToR2(file, fileName, 'chat-media');
+
+      let mediaType = 'file';
+      if (file.type.startsWith('image/')) {
+        mediaType = 'image';
+      } else if (file.type.startsWith('video/')) {
+        mediaType = 'video';
+      } else if (file.type.startsWith('audio/')) {
+        mediaType = 'audio';
+      }
+
+      return { url: publicUrl, type: mediaType };
+    } catch (err: any) {
+      console.error('Upload error:', err);
       toast.error('Erro ao enviar arquivo');
       return null;
     }
-
-    const { data: { publicUrl } } = supabase.storage
-      .from('chat-media')
-      .getPublicUrl(fileName);
-
-    let mediaType = 'file';
-    if (file.type.startsWith('image/')) {
-      mediaType = 'image';
-    } else if (file.type.startsWith('video/')) {
-      mediaType = 'video';
-    } else if (file.type.startsWith('audio/')) {
-      mediaType = 'audio';
-    }
-
-    return { url: publicUrl, type: mediaType };
   };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -305,15 +300,15 @@ const ChatDialog: React.FC<ChatDialogProps> = ({
       mediaRecorder.onstop = async () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         stream.getTracks().forEach(track => track.stop());
-        
+
         setUploadingMedia(true);
         const file = new File([audioBlob], `audio_${Date.now()}.webm`, { type: 'audio/webm' });
         const mediaResult = await uploadMedia(file);
-        
+
         if (mediaResult) {
           await sendMediaMessage(mediaResult.url, 'audio');
         }
-        
+
         setUploadingMedia(false);
         setRecordingTime(0);
       };
@@ -408,7 +403,7 @@ const ChatDialog: React.FC<ChatDialogProps> = ({
     }
 
     setLoading(false);
-    
+
     setTimeout(() => {
       inputRef.current?.focus();
     }, 0);
@@ -439,11 +434,11 @@ const ChatDialog: React.FC<ChatDialogProps> = ({
               </Avatar>
               CHAT COM {friendName.toUpperCase()}
             </div>
-            
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   size="icon"
                   className="h-8 w-8 hover:bg-retro-cyan/20"
                 >
@@ -451,7 +446,7 @@ const ChatDialog: React.FC<ChatDialogProps> = ({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="bg-card border-retro-cyan/50">
-                <DropdownMenuItem 
+                <DropdownMenuItem
                   onClick={deleteAllMessagesForMe}
                   className="text-destructive hover:bg-destructive/20 cursor-pointer"
                 >
@@ -466,21 +461,20 @@ const ChatDialog: React.FC<ChatDialogProps> = ({
           <div className="space-y-4">
             {messages.map((message) => {
               const isSentByMe = message.sender_id === user?.id;
-              const repliedMessage = message.reply_to 
+              const repliedMessage = message.reply_to
                 ? messages.find(m => m.id === message.reply_to)
                 : null;
-              
+
               return (
                 <div
                   key={message.id}
                   className={`flex ${isSentByMe ? 'justify-end' : 'justify-start'} group`}
                 >
                   <div
-                    className={`max-w-[70%] p-3 rounded-lg relative ${
-                      isSentByMe
-                        ? 'bg-retro-cyan/20 border border-retro-cyan/50'
-                        : 'bg-retro-purple/20 border border-retro-purple/50'
-                    }`}
+                    className={`max-w-[70%] p-3 rounded-lg relative ${isSentByMe
+                      ? 'bg-retro-cyan/20 border border-retro-cyan/50'
+                      : 'bg-retro-purple/20 border border-retro-purple/50'
+                      }`}
                   >
                     {repliedMessage && (
                       <div className="mb-2 p-2 rounded bg-background/30 border-l-2 border-retro-cyan">
@@ -492,39 +486,39 @@ const ChatDialog: React.FC<ChatDialogProps> = ({
                         </p>
                       </div>
                     )}
-                    
+
                     {/* Media content */}
                     {message.media_url && message.media_type === 'image' && (
-                      <img 
-                        src={message.media_url} 
-                        alt="Imagem" 
+                      <img
+                        src={message.media_url}
+                        alt="Imagem"
                         className="max-w-full rounded-lg mb-2 cursor-pointer hover:opacity-90 transition-opacity"
                         onClick={() => window.open(message.media_url!, '_blank')}
                       />
                     )}
-                    
+
                     {message.media_url && message.media_type === 'video' && (
-                      <video 
-                        src={message.media_url} 
-                        controls 
+                      <video
+                        src={message.media_url}
+                        controls
                         className="max-w-full rounded-lg mb-2"
                       />
                     )}
-                    
+
                     {message.media_url && message.media_type === 'audio' && (
                       <AudioPlayer src={message.media_url} />
                     )}
-                    
+
                     {/* Text content - hide default text for media messages */}
                     {(!message.media_url || (message.media_type !== 'image' && message.media_type !== 'video' && message.media_type !== 'audio')) && (
                       <p className="text-mono text-sm">{message.content}</p>
                     )}
-                    
+
                     <div className="flex items-center justify-between gap-2 mt-1">
                       <p className="text-xs text-muted-foreground">
                         {formatTime(message.created_at)}
                       </p>
-                      
+
                       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
                           onClick={() => setReplyingTo(message)}
@@ -574,7 +568,7 @@ const ChatDialog: React.FC<ChatDialogProps> = ({
               </button>
             </div>
           )}
-          
+
           {/* Recording UI */}
           {isRecording ? (
             <div className="flex items-center gap-3 p-4 bg-red-500/10">
@@ -610,7 +604,7 @@ const ChatDialog: React.FC<ChatDialogProps> = ({
                 accept="image/*,video/*"
                 className="hidden"
               />
-              
+
               <Button
                 variant="ghost"
                 size="icon"
@@ -625,7 +619,7 @@ const ChatDialog: React.FC<ChatDialogProps> = ({
                   <Image className="w-5 h-5" />
                 )}
               </Button>
-              
+
               <Button
                 variant="ghost"
                 size="icon"
@@ -636,7 +630,7 @@ const ChatDialog: React.FC<ChatDialogProps> = ({
               >
                 <Mic className="w-5 h-5" />
               </Button>
-              
+
               <Input
                 ref={inputRef}
                 placeholder="Digite sua mensagem..."
@@ -720,7 +714,7 @@ const AudioPlayer: React.FC<{ src: string }> = ({ src }) => {
   return (
     <div className="flex items-center gap-3 p-2 bg-background/30 rounded-lg min-w-[200px]">
       <audio ref={audioRef} src={src} preload="metadata" />
-      
+
       <button
         onClick={togglePlay}
         className="w-8 h-8 flex items-center justify-center rounded-full bg-retro-cyan/30 hover:bg-retro-cyan/50 transition-colors"
@@ -731,7 +725,7 @@ const AudioPlayer: React.FC<{ src: string }> = ({ src }) => {
           <Play className="w-4 h-4 ml-0.5" />
         )}
       </button>
-      
+
       <div className="flex-1 flex flex-col gap-1">
         <input
           type="range"

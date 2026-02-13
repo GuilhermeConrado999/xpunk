@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
+import { uploadToR2, deleteFromR2, extractPathFromUrl } from '@/lib/r2-upload';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Upload, X } from 'lucide-react';
 
@@ -92,22 +93,14 @@ const CommunityEditDialog = ({ community, open, onOpenChange, onCommunityUpdated
 
         // Delete old thumbnail if exists
         if (community.thumbnail_url) {
-          const oldPath = community.thumbnail_url.split('/thumbnails/')[1];
+          const oldPath = extractPathFromUrl(community.thumbnail_url, 'thumbnails');
           if (oldPath) {
-            await supabase.storage.from('thumbnails').remove([oldPath]);
+            await deleteFromR2(oldPath, 'thumbnails');
           }
         }
 
-        // Upload new thumbnail (user-scoped path to satisfy RLS)
-        const { error: uploadError } = await supabase.storage
-          .from('thumbnails')
-          .upload(filePath, thumbnailFile);
-
-        if (uploadError) throw uploadError;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('thumbnails')
-          .getPublicUrl(filePath);
+        // Upload to R2
+        const { publicUrl } = await uploadToR2(thumbnailFile, filePath, 'thumbnails');
 
         thumbnailUrl = publicUrl;
       }
@@ -166,9 +159,9 @@ const CommunityEditDialog = ({ community, open, onOpenChange, onCommunityUpdated
             <div className="space-y-2">
               {thumbnailPreview && (
                 <div className="relative">
-                  <img 
-                    src={thumbnailPreview} 
-                    alt="Preview" 
+                  <img
+                    src={thumbnailPreview}
+                    alt="Preview"
                     className="w-full h-32 object-cover rounded-lg pixel-border"
                   />
                   <Button
